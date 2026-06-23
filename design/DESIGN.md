@@ -1,8 +1,8 @@
-# Sigil — WAX Wallet · Identity + UI/UX (flagship concept)
+# waxwing — WAX Wallet · Identity + UI/UX (flagship concept)
 
-> ⚠️ **NAME SUPERSEDED (2026-06-24):** trademark clearance failed for "Sigil" (multiple crypto
-> collisions: SGL coin, Sigil AI, Sigil Finance). The locked brand is now **waxwing** —
-> see `../brand/BRAND.md`. The UI/UX spec below still stands; only the name + logo concept changed.
+> ⚠️ **NAME (2026-06-24):** the locked brand is **waxwing** — see `../brand/BRAND.md`.
+> An earlier shortlist favorite was dropped after trademark clearance failed (crowded crypto
+> namespace). The UI/UX spec below still stands; only the name + logo concept changed.
 
 Designer: **Monanisa** · 2026-06-24 · for owner review.
 Goal: be **better than Anchor** and serve as a **showcase of BagIdea Office**.
@@ -13,11 +13,11 @@ Boards: `preview-identity.png`, `preview-screens.png` (source: `mockup-identity.
 
 ---
 
-## 1) Name — 5 candidates (no “Anchor”)
+## 1) Name — locked: waxwing (shortlist, no “Anchor”)
 
 | # | Name | Why |
 |---|------|-----|
-| **1 ⭐** | **Sigil** *(recommended)* | **WAX → sealing wax → a sigil pressed in wax.** The wallet's whole job is **signing**, and a sigil is a personal seal/signature. Fantasy/NFT resonance fits WAX's gaming ecosystem. Short, ownable, and out of Anchor's heavy maritime shadow. |
+| **1 ⭐** | **waxwing** *(locked)* | **A waxwing is a real crested bird named for the wax-red droplets on its wingtips → a built-in tie to WAX.** The wallet's whole job is **signing**; your keys stay on your machine and the tx takes flight. Short, ownable, mascot-ready, and out of Anchor's heavy maritime shadow. |
 | 2 | **Helm** | Self-sovereignty made **active** — you steer your own ship. Where an anchor weighs you down, the helm puts you in control. 4 letters, strong; sits next to Anchor but one-ups the metaphor. |
 | 3 | **Seal** | Most literal WAX play — you **seal** each transaction in wax. Warm, concrete, easy in all 14 languages. Risk: a common word. |
 | 4 | **Cardinal** | Navigation's **cardinal marks** + a “cardinal rule” of trust + a compass direction. Premium, editorial. Longer but confident. |

@@ -31,8 +31,8 @@ Designer: **Monanisa** · 2026-06-24 · for owner review.
 | Seal | ⚠️ dropped | Most literal, but a common word — impossible to own / trademark / search. |
 | Helm | ⚠️ dropped | No crypto-wallet collision, but collides hard with **Kubernetes Helm** in dev tooling. |
 
-**Cleared & killed (collisions):** **Sigil** (SGL coin, Sigil AI on Solana, Sigil Finance, Sigil Fund — crowded) · **Quill** (DFINITY's ICP self-custody wallet — direct hit) · **Crest** (Crest Protocol + a launching BTC wallet) · **Signet** (Bitcoin *signet* test network + Signature Bank Signet) · **Wick** (Wick Trade / Wick Finance) · **Cardinal** (CARDINAL token + ordinals tooling).
-*(This supersedes the earlier "Sigil" recommendation in `design/DESIGN.md`, which was flagged "clearance needed before lock." Clearance failed — Sigil is out.)*
+**Cleared & killed (collisions):** **Quill** (DFINITY's ICP self-custody wallet — direct hit) · **Crest** (Crest Protocol + a launching BTC wallet) · **Signet** (Bitcoin *signet* test network + Signature Bank Signet) · **Wick** (Wick Trade / Wick Finance) · **Cardinal** (CARDINAL token + ordinals tooling).
+*(This supersedes an earlier shortlist recommendation in `design/DESIGN.md`, which was flagged "clearance needed before lock." That name's clearance failed — it's out.)*
 
 ---
 
