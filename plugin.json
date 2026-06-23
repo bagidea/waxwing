@@ -2,7 +2,7 @@
   "id": "wax-wallet",
   "name": "🪙 waxwing",
   "version": "0.3.0",
-  "description": "waxwing — self-custody Antelope wallet (WAX + EOS, testnet & mainnet, config-driven; default WAX testnet): generate/import keys encrypted-at-rest (AES-256-GCM + scrypt), unlock with a password, sign + broadcast real transfers via @wharfkit, show balance + history. Tagline: Sign. Seal. Soar.",
+  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet): generate/import keys encrypted-at-rest (AES-256-GCM + scrypt), unlock with a password, sign + broadcast real transfers via @wharfkit, show balance + history. Tagline: Sign. Seal. Soar.",
   "brand": {
     "note": "Single source of truth is the BRAND const in index.js (the panel fetches /plugin/wax-wallet/brand). The `name` above is just the office-shelf label and mirrors BRAND.name.",
     "name": "waxwing",
@@ -11,9 +11,9 @@
   "panel": "panel.html",
   "window": { "w": 540, "h": 800, "resizable": true },
   "commands": [
-    { "name": "networks", "args": "", "desc": "List the configured networks (WAX/EOS · testnet/mainnet) + which is selected" },
+    { "name": "networks", "args": "", "desc": "List the configured networks (WAX · EOS · Telos · XPR/Proton, testnet/mainnet) + which is selected" },
     { "name": "network", "args": "", "desc": "Show the currently selected network" },
-    { "name": "setnetwork", "args": "<id>", "desc": "Switch network: wax-testnet | wax-mainnet | eos-testnet | eos-mainnet (default wax-testnet)" },
+    { "name": "setnetwork", "args": "<id>", "desc": "Switch network: wax-testnet | wax-mainnet | eos-testnet | eos-mainnet | telos-testnet | telos-mainnet | xpr-testnet | xpr-mainnet (default wax-testnet)" },
     { "name": "chaininfo", "args": "[--network <id>]", "desc": "Ping a network's RPC — chain id, head block, server version" },
     { "name": "account", "args": "<name>", "desc": "Look up an account on the selected network: balance + CPU/NET/RAM" },
     { "name": "balance", "args": "<name> [SYMBOL] [contract]", "desc": "Token balance (default eosio.token / core symbol of the selected chain)" },

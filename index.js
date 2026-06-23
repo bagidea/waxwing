@@ -33,9 +33,9 @@ const BRAND = {
   tagline: "Sign. Seal. Soar.",     // your keys, your wax seal, your flight
 };
 
-// ── Antelope networks (config-driven; WAX + EOS) ─────────────────────
+// ── Antelope networks (config-driven; WAX · EOS · Telos · XPR/Proton) ─
 // chainId is the canonical id; every read verifies the live node matches it.
-// corePrecision: WAX core = 8 dp, EOS core = 4 dp.
+// corePrecision: WAX core = 8 dp; EOS/TLOS/XPR core = 4 dp.
 const CHAINS = {
   "wax-testnet": {
     id: "wax-testnet", name: "WAX Testnet", kind: "testnet",
@@ -68,6 +68,40 @@ const CHAINS = {
     chainId: "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906",
     explorerTx: "https://bloks.io/transaction/",
     coreSymbol: "EOS", corePrecision: 4,
+  },
+  // Telos — RPC + Hyperion v2 share one host (live-verified 2026-06-24).
+  "telos-testnet": {
+    id: "telos-testnet", name: "Telos Testnet", kind: "testnet",
+    rpc: "https://testnet.telos.net",
+    history: "https://testnet.telos.net",
+    chainId: "1eaa0824707c8c16bd25145493bf062aecddfeb56c736f6ba6397f3195f33c9f",
+    explorerTx: "https://telos-test.bloks.io/transaction/",
+    coreSymbol: "TLOS", corePrecision: 4,
+  },
+  "telos-mainnet": {
+    id: "telos-mainnet", name: "Telos Mainnet", kind: "mainnet",
+    rpc: "https://mainnet.telos.net",
+    history: "https://mainnet.telos.net",
+    chainId: "4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11",
+    explorerTx: "https://telos.bloks.io/transaction/",
+    coreSymbol: "TLOS", corePrecision: 4,
+  },
+  // XPR Network (Proton) — RPC (eosusa) + Hyperion (saltant) on separate hosts.
+  "xpr-testnet": {
+    id: "xpr-testnet", name: "XPR Network Testnet", kind: "testnet",
+    rpc: "https://test.proton.eosusa.io",
+    history: "https://test.proton.eosusa.io",
+    chainId: "71ee83bcf52142d61019d95f9cc5427ba6a0d7ff8accd9e2088ae2abeaf3d3dd",
+    explorerTx: "https://proton-test.bloks.io/transaction/",
+    coreSymbol: "XPR", corePrecision: 4,
+  },
+  "xpr-mainnet": {
+    id: "xpr-mainnet", name: "XPR Network (Proton)", kind: "mainnet",
+    rpc: "https://proton.eosusa.io",
+    history: "https://api-xprnetwork-main.saltant.io",
+    chainId: "384da888112027f0321850a169f737c33e53b388aad48b5adace4bab97f437e0",
+    explorerTx: "https://proton.bloks.io/transaction/",
+    coreSymbol: "XPR", corePrecision: 4,
   },
 };
 const DEFAULT_NET = "wax-testnet"; // boss order — default network on a fresh store
