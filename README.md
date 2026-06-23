@@ -122,11 +122,12 @@ Full command list: run `{"cmd":"status"}`, or see [`plugin.json`](plugin.json).
 
 ## 📸 Screenshots
 
-The wallet panel — networks, keystore, sign/seal flow:
+Real screenshots of the actual panel (`panel.html`, rendered headless — not a mockup):
+**Unlock** (wallet locked) · the **network switcher** (WAX · EOS · Telos · XPR) · and a **Send** on `REAL BROADCAST`.
 
 ![waxwing panel](design/preview-screens.png)
 
-<!-- Add more screenshots / a recorded GIF of a live testnet send here as the UI evolves. -->
+<!-- Captures are rendered from the live panel.html. Add a recorded GIF of a live testnet send here as the UI evolves. -->
 
 ## 🛠 Stack
 

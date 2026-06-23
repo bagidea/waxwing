@@ -47,7 +47,7 @@ Designer: **Monanisa** · 2026-06-24 · for owner review.
 | `wordmark.svg` | `waxwing` wordmark; the tittle of the **i** is the amber wax-seal dot. *(Dev: outline text to paths before shipping so it's font-independent.)* |
 | `lockup.svg` | Horizontal lockup — icon + wordmark. Default for headers/README. |
 | `hero-waxwing.png` | Marketing hero / mascot illustration (raster). |
-| `preview-brand.png` | This kit on one board (overview). |
+| `preview-brand.png` | Brand on the product — a **real** `panel.html` capture (Send · real broadcast) + lockup/tagline. Source for the full kit board: `preview-brand.html`. |
 
 **Clear space:** keep ≥ the bird's head-height of padding around the lockup. **Min sizes:** icon 16px, lockup 120px wide. **Don't:** recolor the bird off-palette, drop the amber tip, stretch, or add a second warm color.
 

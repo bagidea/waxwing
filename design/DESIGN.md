@@ -6,7 +6,9 @@
 
 Designer: **Monanisa** · 2026-06-24 · for owner review.
 Goal: be **better than Anchor** and serve as a **showcase of BagIdea Office**.
-Boards: `preview-identity.png`, `preview-screens.png` (source: `mockup-identity.html`, `mockup-screens.html`).
+Previews: `preview-screens.png` (the 3 real panel screens — Unlock · Networks · Send) and `preview-identity.png`
+(real Unlock capture + the live palette). Both are **real `panel.html` captures**, not mockups; the original concept
+boards are still reproducible from `mockup-identity.html` / `mockup-screens.html`.
 
 > Architecture truth (from Sahara's MEMO): **non-custodial** — signing is delegated via WharfKit;
 > we never hold a private key. The identity below leans into exactly that: *“your seal, your keys.”*
