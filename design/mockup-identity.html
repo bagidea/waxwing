@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/>
+<title>Sigil — Identity</title>
+<style>
+:root{
+  --bg:#0a1020; --panel:#111b30; --panel2:#0e1729; --line:#1f2d49;
+  --fg:#e6eeff; --mut:#7f93b8; --dim:#5a6b8c;
+  --acc:#5ec8ff; --acc2:#7aa2ff; --seal:#ffb86b; --seal2:#ff9f45; --ok:#5bd6a0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,"Noto Sans Thai",sans-serif;-webkit-font-smoothing:antialiased;
+  width:1760px;height:1080px;color:var(--fg);overflow:hidden;
+  background:radial-gradient(900px 600px at 16% -6%,rgba(94,200,255,.10),transparent 60%),
+             radial-gradient(900px 700px at 95% 112%,rgba(122,162,255,.10),transparent 55%),#070b16;position:relative;}
+.grid-bg{position:absolute;inset:0;background-image:
+  linear-gradient(rgba(120,160,230,.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(120,160,230,.045) 1px,transparent 1px);background-size:44px 44px;
+  mask-image:radial-gradient(1200px 700px at 50% 40%,#000,transparent 85%);}
+.board{position:relative;padding:44px 56px;}
+.head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:26px}
+.brandline{display:flex;align-items:center;gap:18px}
+.logo{width:58px;height:58px;border-radius:17px;background:linear-gradient(150deg,#0f2236,#14305a);
+  border:1px solid rgba(120,170,255,.35);box-shadow:0 8px 26px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center}
+.logo svg{width:34px;height:34px}
+.wm{font-size:32px;font-weight:700;letter-spacing:.14em}
+.wm b{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag{font-size:13px;color:var(--mut);margin-top:3px}
+.headmeta{text-align:right;color:var(--dim);font-size:12px;line-height:1.7}
+.headmeta b{color:var(--mut)}
+.cols{display:flex;gap:26px}
+.left{width:760px}.right{flex:1}
+.sect{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--dim);font-weight:700;margin:0 0 14px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:18px;padding:18px 20px}
+/* names */
+.name{display:flex;align-items:flex-start;gap:14px;padding:13px 0;border-top:1px solid var(--line)}
+.name:first-child{border-top:none}
+.rank{width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;
+  background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--mut)}
+.name.top .rank{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#04111e;border:none}
+.name .nm{font-size:18px;font-weight:800;letter-spacing:.01em}
+.name .nm .pick{font-size:10px;font-weight:800;color:var(--ok);background:rgba(91,214,160,.13);border:1px solid rgba(91,214,160,.3);border-radius:999px;padding:2px 8px;margin-left:9px;letter-spacing:.05em;vertical-align:middle}
+.name .why{font-size:12.5px;color:var(--mut);margin-top:4px;line-height:1.55}
+.name .why b{color:#cfe0ff;font-weight:600}
+/* logo variants */
+.logos{display:flex;gap:14px;margin-top:4px}
+.lv{flex:1;background:#0a1120;border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.lv .mk{width:72px;height:72px;border-radius:20px;display:flex;align-items:center;justify-content:center}
+.lv .cap{font-size:10.5px;color:var(--dim);text-align:center;letter-spacing:.04em}
+.lv svg{width:42px;height:42px}
+.mk.a{background:linear-gradient(150deg,#0f2236,#14305a);border:1px solid rgba(120,170,255,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.mk.b{background:linear-gradient(135deg,#5ec8ff,#7aa2ff)}
+.mk.c{background:#0a1120;border:1px solid var(--line)}
+/* swatches */
+.sw{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.sw:first-child{border-top:none}
+.chip{width:42px;height:42px;border-radius:12px;flex:none;border:1px solid rgba(255,255,255,.1)}
+.sw .info{flex:1}
+.sw .info .n{font-size:13px;font-weight:700}
+.sw .info .u{font-size:11px;color:var(--dim)}
+.sw .hex{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--mut)}
+/* mood */
+.mood p{font-size:13px;color:var(--mut);line-height:1.65;margin-bottom:10px}
+.mood p b{color:#cfe0ff;font-weight:600}
+.kw{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.kw span{font-size:11.5px;color:#cfe0ff;background:rgba(94,200,255,.08);border:1px solid rgba(94,200,255,.22);border-radius:999px;padding:5px 11px}
+.vsrow{display:flex;gap:12px;margin-top:14px}
+.vs{flex:1;border:1px solid var(--line);border-radius:14px;padding:13px}
+.vs .t{font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:7px}
+.vs.them .t{color:var(--dim)}.vs.us .t{color:var(--acc)}
+.vs ul{list-style:none;font-size:12px;color:var(--mut);line-height:1.7}
+.vs.us ul{color:#cfe0ff}
+.vs li:before{content:"•";color:var(--acc);margin-right:7px}
+.vs.them li:before{content:"·";color:var(--dim);margin-right:7px}
+.mt14{margin-top:14px}
+.mb6{margin-bottom:6px}
+</style></head>
+<body>
+<div class="grid-bg"></div>
+<div class="board">
+  <div class="head">
+    <div class="brandline">
+      <div class="logo">
+        <svg viewBox="0 0 32 32" fill="none">
+          <defs><linearGradient id="lg" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#7ad4ff"/><stop offset="1" stop-color="#7aa2ff"/></linearGradient></defs>
+          <path d="M16 2 L27 8 V18 C27 25 22 29 16 31 C10 29 5 25 5 18 V8 Z" stroke="url(#lg)" stroke-width="1.7" fill="rgba(94,200,255,.08)"/>
+          <circle cx="16" cy="14" r="3.4" stroke="url(#lg)" stroke-width="1.7"/>
+          <path d="M16 17.2 V23" stroke="url(#lg)" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div><div class="wm"><b>SIGIL</b></div><div class="tag">Brand identity & direction — WAX Wallet · BagIdea Office</div></div>
+    </div>
+    <div class="headmeta"><div><b>Identity board</b> · for owner review</div><div>5 name options · logo · color · mood</div><div>“Better than Anchor” — and our showcase</div></div>
+  </div>
+
+  <div class="cols">
+    <!-- LEFT: names -->
+    <div class="left">
+      <div class="card">
+        <p class="sect">Name options — 5 candidates (no “Anchor”)</p>
+        <div class="name top">
+          <div class="rank">1</div>
+          <div><div class="nm">Sigil <span class="pick">RECOMMENDED</span></div>
+            <div class="why"><b>WAX → sealing wax → a sigil pressed in wax.</b> The wallet's whole job is <b>signing</b> — and a sigil is a personal seal/signature. Fantasy/NFT resonance fits WAX's gaming ecosystem. Short, ownable, and steps out of Anchor's heavy maritime shadow.</div></div>
+        </div>
+        <div class="name">
+          <div class="rank">2</div>
+          <div><div class="nm">Helm</div>
+            <div class="why">Self-sovereignty made <b>active</b>: you steer your own ship. Where an anchor weighs you down, the <b>helm</b> puts you in control. 4 letters, strong — sits next to Anchor but one-ups the metaphor.</div></div>
+        </div>
+        <div class="name">
+          <div class="rank">3</div>
+          <div><div class="nm">Seal</div>
+            <div class="why">The most literal WAX play — you <b>seal</b> each transaction in wax. Warm, concrete, easy to say in any of our 14 languages. Slight risk: a common word.</div></div>
+        </div>
+        <div class="name">
+          <div class="rank">4</div>
+          <div><div class="nm">Cardinal</div>
+            <div class="why">Navigation's <b>cardinal marks</b> + a “cardinal rule” of trust + a compass direction. Premium, editorial feel. Longer, but distinctive and confident.</div></div>
+        </div>
+        <div class="name">
+          <div class="rank">5</div>
+          <div><div class="nm">Quill</div>
+            <div class="why">You sign with a <b>quill</b>, then press the wax seal. Craft & heritage tone, elegant — pairs beautifully with the seal motif if we lean artisanal.</div></div>
+        </div>
+      </div>
+
+      <div class="card mt14">
+        <p class="sect">Logo direction — “seal medallion” (shown: Sigil)</p>
+        <div class="logos">
+          <div class="lv"><div class="mk a">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M16 2 L27 8 V18 C27 25 22 29 16 31 C10 29 5 25 5 18 V8 Z" stroke="url(#lg)" stroke-width="1.7" fill="rgba(94,200,255,.08)"/><circle cx="16" cy="14" r="3.4" stroke="url(#lg)" stroke-width="1.7"/><path d="M16 17.2 V23" stroke="url(#lg)" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </div><div class="cap">App icon · glass seal<br/>shield + keyhole</div></div>
+          <div class="lv"><div class="mk b">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M16 3 L26 8.5 V17.5 C26 24 21.5 27.5 16 29.5 C10.5 27.5 6 24 6 17.5 V8.5 Z" stroke="#04111e" stroke-width="1.8" fill="none"/><circle cx="16" cy="14" r="3.2" stroke="#04111e" stroke-width="1.8"/><path d="M16 17 V22.5" stroke="#04111e" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div><div class="cap">Solid / favicon<br/>16px legible</div></div>
+          <div class="lv"><div class="mk c">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M16 2 L27 8 V18 C27 25 22 29 16 31 C10 29 5 25 5 18 V8 Z" stroke="#7f93b8" stroke-width="1.5" fill="none"/><circle cx="16" cy="14" r="3.4" stroke="#7f93b8" stroke-width="1.5"/><path d="M16 17.2 V23" stroke="#7f93b8" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div><div class="cap">Monochrome<br/>line / stamp</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: color + mood -->
+    <div class="right">
+      <div class="card">
+        <p class="sect">Color system — extends the office dark theme</p>
+        <div class="sw"><span class="chip" style="background:#070b16"></span><div class="info"><div class="n">Canvas</div><div class="u">deepest background / board</div></div><span class="hex">#070b16</span></div>
+        <div class="sw"><span class="chip" style="background:linear-gradient(180deg,#111b30,#0e1729)"></span><div class="info"><div class="n">Panel / Surface</div><div class="u">cards</div></div><span class="hex">#111b30</span></div>
+        <div class="sw"><span class="chip" style="background:#1f2d49"></span><div class="info"><div class="n">Line / Border</div><div class="u">hairlines · dividers</div></div><span class="hex">#1f2d49</span></div>
+        <div class="sw"><span class="chip" style="background:linear-gradient(135deg,#5ec8ff,#7aa2ff)"></span><div class="info"><div class="n">Accent — Signal Cyan→Indigo</div><div class="u">primary · office signature</div></div><span class="hex">#5ec8ff→#7aa2ff</span></div>
+        <div class="sw"><span class="chip" style="background:linear-gradient(135deg,#ffb86b,#ff9f45)"></span><div class="info"><div class="n">Seal Amber</div><div class="u">ONLY the sign/confirm moment</div></div><span class="hex">#ffb86b→#ff9f45</span></div>
+        <div class="sw"><span class="chip" style="background:#5bd6a0"></span><div class="info"><div class="n">Success</div><div class="u">verified · online</div></div><span class="hex">#5bd6a0</span></div>
+        <div class="sw"><span class="chip" style="background:#e6eeff"></span><div class="info"><div class="n">Text</div><div class="u">fg #e6eeff · muted #7f93b8</div></div><span class="hex">#e6eeff</span></div>
+      </div>
+
+      <div class="card mt14 mood">
+        <p class="sect">Mood — “quiet confidence, self-custody calm”</p>
+        <p><b>Deep-space navy, glassy surfaces, one cool accent.</b> The wallet stays calm and cool everywhere — the <b>single warm glow is the act of sealing</b> a transaction. That one amber moment becomes our signature interaction and our visual differentiator.</p>
+        <div class="kw"><span>Calm</span><span>Sovereign</span><span>Glass</span><span>Precise</span><span>Trustworthy</span><span>Not-flashy</span></div>
+        <div class="vsrow">
+          <div class="vs them"><div class="t">Anchor</div><ul><li>heavy, dated Electron look</li><li>flat single blue, busy</li><li>desktop frozen since 2023</li></ul></div>
+          <div class="vs us"><div class="t">Sigil — better</div><ul><li>glass depth + resource gauges</li><li>cool calm, one warm seal</li><li>slim blue-glass scrollbar</li></ul></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

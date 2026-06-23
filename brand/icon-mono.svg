@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Waxwing mark">
+  <!-- Monochrome stamp / favicon. Uses currentColor — set `color:` on the <img>/parent. -->
+  <g fill="currentColor">
+    <path d="M140 120 Q96 86 70 80 Q100 104 134 132 Q140 128 140 120 Z"/>
+    <path d="M140 130 Q98 152 72 166 Q108 152 138 124 Q142 126 140 130 Z"/>
+    <path d="M128 134 Q124 124 134 118 Q150 108 168 98 L182 92 L174 106 Q162 116 150 120 Q156 130 148 136 Q140 130 134 132 Z"/>
+    <path d="M156 110 Q150 98 142 92 Q152 104 150 116 Z"/>
+    <circle cx="72" cy="166" r="9"/>
+  </g>
+</svg>

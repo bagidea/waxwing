@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="200" viewBox="0 0 720 200" role="img" aria-label="Waxwing">
+  <defs>
+    <radialGradient id="bg" cx="32%" cy="24%" r="92%">
+      <stop offset="0%" stop-color="#16233f"/><stop offset="55%" stop-color="#0c1426"/><stop offset="100%" stop-color="#070b16"/>
+    </radialGradient>
+    <linearGradient id="wing" x1="15%" y1="90%" x2="90%" y2="8%">
+      <stop offset="0%" stop-color="#7aa2ff"/><stop offset="50%" stop-color="#5ec8ff"/><stop offset="100%" stop-color="#bfeaff"/>
+    </linearGradient>
+    <linearGradient id="wing2" x1="10%" y1="100%" x2="90%" y2="0%">
+      <stop offset="0%" stop-color="#6b8fe6"/><stop offset="100%" stop-color="#5ec8ff"/>
+    </linearGradient>
+    <radialGradient id="seal" cx="38%" cy="34%" r="70%">
+      <stop offset="0%" stop-color="#ffd9a3"/><stop offset="55%" stop-color="#ffb86b"/><stop offset="100%" stop-color="#ff9f45"/>
+    </radialGradient>
+    <linearGradient id="wm" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7aa2ff"/><stop offset="55%" stop-color="#5ec8ff"/><stop offset="100%" stop-color="#9bd6ff"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- icon tile -->
+  <g transform="translate(20,20) scale(0.625)">
+    <rect x="2" y="2" width="252" height="252" rx="58" fill="url(#bg)"/>
+    <rect x="2.5" y="2.5" width="251" height="251" rx="57.5" fill="none" stroke="#243558" stroke-width="1.5"/>
+    <g filter="url(#glow)">
+      <path d="M140 120 Q96 86 70 80 Q100 104 134 132 Q140 128 140 120 Z" fill="url(#wing2)"/>
+      <path d="M140 130 Q98 152 72 166 Q108 152 138 124 Q142 126 140 130 Z" fill="url(#wing)"/>
+      <path d="M128 134 Q124 124 134 118 Q150 108 168 98 L182 92 L174 106 Q162 116 150 120 Q156 130 148 136 Q140 130 134 132 Z" fill="url(#wing)"/>
+      <path d="M156 110 Q150 98 142 92 Q152 104 150 116 Z" fill="url(#wing2)"/>
+    </g>
+    <circle cx="72" cy="166" r="9" fill="url(#seal)"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="208" y="128" font-family="'Segoe UI', system-ui, -apple-system, sans-serif"
+        font-size="92" font-weight="800" letter-spacing="-3" fill="url(#wm)">waxwing</text>
+  <circle cx="505" cy="69" r="9" fill="url(#seal)"/>
+</svg>

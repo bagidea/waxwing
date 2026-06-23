@@ -1,0 +1,35 @@
+{
+  "id": "wax-wallet",
+  "name": "🪙 waxwing",
+  "version": "0.3.0",
+  "description": "waxwing — self-custody Antelope wallet (WAX + EOS, testnet & mainnet, config-driven; default WAX testnet): generate/import keys encrypted-at-rest (AES-256-GCM + scrypt), unlock with a password, sign + broadcast real transfers via @wharfkit, show balance + history. Tagline: Sign. Seal. Soar.",
+  "brand": {
+    "note": "Single source of truth is the BRAND const in index.js (the panel fetches /plugin/wax-wallet/brand). The `name` above is just the office-shelf label and mirrors BRAND.name.",
+    "name": "waxwing",
+    "logo": "🪙"
+  },
+  "panel": "panel.html",
+  "window": { "w": 540, "h": 800, "resizable": true },
+  "commands": [
+    { "name": "networks", "args": "", "desc": "List the configured networks (WAX/EOS · testnet/mainnet) + which is selected" },
+    { "name": "network", "args": "", "desc": "Show the currently selected network" },
+    { "name": "setnetwork", "args": "<id>", "desc": "Switch network: wax-testnet | wax-mainnet | eos-testnet | eos-mainnet (default wax-testnet)" },
+    { "name": "chaininfo", "args": "[--network <id>]", "desc": "Ping a network's RPC — chain id, head block, server version" },
+    { "name": "account", "args": "<name>", "desc": "Look up an account on the selected network: balance + CPU/NET/RAM" },
+    { "name": "balance", "args": "<name> [SYMBOL] [contract]", "desc": "Token balance (default eosio.token / core symbol of the selected chain)" },
+    { "name": "history", "args": "<name> [limit]", "desc": "Recent transactions of an account (Hyperion v2)" },
+    { "name": "create", "args": "<password> [account] [permission]", "desc": "Generate a NEW keypair (any Antelope chain), store the private key encrypted (AES-256-GCM)" },
+    { "name": "import", "args": "<password> <privkey> [account] [permission]", "desc": "Import an existing private key (PVT_K1_… or WIF 5…), stored encrypted" },
+    { "name": "accounts", "args": "", "desc": "List stored keys/accounts (public info only — never private keys)" },
+    { "name": "unlock", "args": "<password> [account]", "desc": "Decrypt key(s) into memory after verifying the password (auto-locks)" },
+    { "name": "lock", "args": "", "desc": "Wipe all decrypted keys from memory" },
+    { "name": "status", "args": "", "desc": "Wallet status: selected network, networks, stored accounts, locked/unlocked, brand" },
+    { "name": "setaccount", "args": "<select> <account> [permission]", "desc": "Bind a stored key to an on-chain account name / permission" },
+    { "name": "newaccount", "args": "<json>", "desc": "Create a NEW on-chain account on the selected network, bound to a generated key (creator pays RAM+stake)" },
+    { "name": "send", "args": "<json>", "desc": "Sign + BROADCAST a real transfer on the selected network (requires unlocked wallet)" },
+    { "name": "remove", "args": "<select>", "desc": "Delete a stored key from the keystore" },
+    { "name": "brand", "args": "", "desc": "Return the brand name/logo (single source of truth)" }
+  ],
+  "needsKeys": [],
+  "enabled": true
+}

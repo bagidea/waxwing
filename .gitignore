@@ -1,0 +1,50 @@
+# ── Secrets & key material — NEVER commit ──────────────────────────────
+# The wallet writes its encrypted keystore into the runtime data dir.
+# Even though keys are encrypted at rest, an encrypted keystore is still
+# personal key material and must never leave the machine via git.
+data/
+keystore.json
+*.keystore
+*.key
+*.pem
+*.p12
+*.pfx
+# Anything that looks like a raw private key dump or seed backup
+*privkey*
+*private-key*
+*seed*.txt
+mnemonic*.txt
+
+# Environment / credentials
+.env
+.env.*
+*.local
+secrets.json
+credentials.json
+
+# ── Dependencies (reinstalled with `npm install`) ──────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Build artifacts / caches ───────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+coverage/
+*.tsbuildinfo
+.cache/
+
+# ── OS / editor noise ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
+
+# NOTE: brand/ and design/ images (PNG/SVG) are intentionally tracked —
+# the README hero + screenshots reference them. Do not add a global *.png ignore.

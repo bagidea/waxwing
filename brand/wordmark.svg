@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="160" viewBox="0 0 560 160" role="img" aria-label="waxwing">
+  <defs>
+    <linearGradient id="wm" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7aa2ff"/>
+      <stop offset="55%" stop-color="#5ec8ff"/>
+      <stop offset="100%" stop-color="#9bd6ff"/>
+    </linearGradient>
+    <radialGradient id="wmseal" cx="40%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#ffd9a3"/>
+      <stop offset="60%" stop-color="#ffb86b"/>
+      <stop offset="100%" stop-color="#ff9f45"/>
+    </radialGradient>
+  </defs>
+  <!-- Wordmark. Type: system-ui / Segoe UI, weight 800. Dev: outline to paths before shipping. -->
+  <text x="24" y="112" font-family="'Segoe UI', system-ui, -apple-system, sans-serif"
+        font-size="112" font-weight="800" letter-spacing="-3" fill="url(#wm)">waxwing</text>
+  <!-- amber 'seal' dot replacing the tittle of the i (tuned to the Segoe UI metrics above) -->
+  <circle cx="393" cy="44" r="11" fill="url(#wmseal)"/>
+</svg>

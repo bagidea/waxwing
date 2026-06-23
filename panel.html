@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>waxwing</title>
+<style>
+  /* waxwing brand palette (brand/BRAND.md): office dark + one warm wax note. */
+  :root {
+    --bg:#070b16; --panel:#111b30; --panel2:#0e1729; --line:#1f2d49;
+    --fg:#e6eeff; --mut:#7f93b8; --dim:#5a6b8c;
+    --acc:#5ec8ff; --acc2:#7aa2ff;          /* primary cyan→indigo */
+    --seal:#ffb86b; --seal2:#ff9f45;        /* the sign / seal moment ONLY */
+    --ok:#5bd6a0; --warn:#ffcf6b; --bad:#ff6b81;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; }
+  body {
+    background:var(--bg); color:var(--fg); padding:18px;
+    font-family:system-ui,"Segoe UI","Leelawadee UI",Tahoma,"Noto Sans Thai","Noto Sans CJK",sans-serif;
+    font-size:14px; line-height:1.5;
+    /* office signature: slim blue-glass scrollbar */
+    scrollbar-width:thin; scrollbar-color:rgba(110,180,255,.30) transparent;
+  }
+  ::-webkit-scrollbar { width:9px; height:9px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:rgba(110,180,255,.22); border-radius:999px; border:2px solid transparent; background-clip:padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background:rgba(110,180,255,.45); background-clip:padding-box; }
+  h1 { font-size:18px; margin:0 0 2px; display:flex; align-items:center; gap:9px; }
+  h1 .logo { width:26px; height:26px; flex:0 0 auto; display:block; }
+  h1 #brandName { font-weight:800; letter-spacing:-.03em; }
+  .net { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--mut);
+         border:1px solid var(--line); border-radius:999px; padding:2px 9px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--mut); }
+  .dot.on { background:var(--ok); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:14px; }
+  .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--mut); margin:0 0 10px;
+             display:flex; justify-content:space-between; align-items:center; }
+  label { display:block; font-size:12px; color:var(--mut); margin:8px 0 4px; }
+  input, select {
+    width:100%; background:#0a1120; border:1px solid var(--line); color:var(--fg);
+    border-radius:8px; padding:9px 11px; font-size:14px; outline:none;
+  }
+  input:focus, select:focus { border-color:var(--acc); }
+  .row { display:flex; gap:8px; }
+  .row > * { flex:1; }
+  button {
+    background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#04111e; border:none; border-radius:8px;
+    padding:9px 14px; font-weight:700; cursor:pointer; font-size:13px; white-space:nowrap;
+  }
+  button.ghost { background:transparent; color:var(--acc); border:1px solid var(--line); font-weight:600; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  /* the sign / seal moment — the ONE warm wax note (sign & broadcast only) */
+  button.seal { background:linear-gradient(135deg,var(--seal),var(--seal2)); color:#2a1402; }
+  .big { font-size:26px; font-weight:700; }
+  .big small { font-size:14px; color:var(--mut); font-weight:600; }
+  .kv { display:flex; justify-content:space-between; gap:12px; padding:5px 0; border-top:1px solid var(--line); font-size:13px; }
+  .kv:first-of-type { border-top:none; }
+  .kv .k { color:var(--mut); }
+  .mono { font-family:ui-monospace,"Cascadia Code",Consolas,monospace; font-size:11px; word-break:break-all; }
+  .muted { color:var(--mut); }
+  .err { color:var(--bad); }
+  .okmsg { color:var(--ok); }
+  .hint { font-size:11px; color:var(--mut); margin-top:8px; }
+  .pill { font-size:10px; background:#0a1120; border:1px solid var(--line); border-radius:6px; padding:1px 6px; color:var(--mut); }
+  .pill.lock { color:var(--warn); } .pill.unlock { color:var(--ok); }
+  .pill.mainnet { color:var(--bad); border-color:var(--bad); }
+  .pill.testnet { color:var(--ok); }
+  .hide { display:none; }
+  .tabs { display:flex; gap:6px; margin-top:6px; }
+  .tabs button { flex:1; background:transparent; border:1px solid var(--line); color:var(--mut); }
+  .tabs button.active { color:var(--acc); border-color:var(--acc); }
+  .hist { font-size:12px; }
+  .hist .it { padding:7px 0; border-top:1px solid var(--line); }
+  .hist .it:first-child { border-top:none; }
+  .amt.out { color:var(--warn); } .amt.in { color:var(--ok); }
+  a { color:var(--acc); }
+  .warn-banner { font-size:11px; color:var(--warn); border:1px solid var(--line); border-radius:8px; padding:7px 10px; margin-top:10px; background:#0a1120; }
+  .warn-banner.danger { color:var(--bad); border-color:var(--bad); }
+  .netbar { display:flex; gap:8px; align-items:center; margin-top:10px; }
+  .netbar select { flex:1; }
+</style>
+</head>
+<body>
+  <h1>
+    <!-- waxwing mark (brand/icon.svg, inlined): cyan→indigo bird, one amber wax wingtip -->
+    <svg class="logo" id="brandLogo" viewBox="0 0 256 256" role="img" aria-label="waxwing">
+      <defs>
+        <radialGradient id="lbg" cx="32%" cy="24%" r="92%"><stop offset="0%" stop-color="#16233f"/><stop offset="55%" stop-color="#0c1426"/><stop offset="100%" stop-color="#070b16"/></radialGradient>
+        <linearGradient id="lwing" x1="15%" y1="90%" x2="90%" y2="8%"><stop offset="0%" stop-color="#7aa2ff"/><stop offset="50%" stop-color="#5ec8ff"/><stop offset="100%" stop-color="#bfeaff"/></linearGradient>
+        <linearGradient id="lwing2" x1="10%" y1="100%" x2="90%" y2="0%"><stop offset="0%" stop-color="#6b8fe6"/><stop offset="100%" stop-color="#5ec8ff"/></linearGradient>
+        <radialGradient id="lseal" cx="38%" cy="34%" r="70%"><stop offset="0%" stop-color="#ffd9a3"/><stop offset="55%" stop-color="#ffb86b"/><stop offset="100%" stop-color="#ff9f45"/></radialGradient>
+      </defs>
+      <rect x="2" y="2" width="252" height="252" rx="58" fill="url(#lbg)"/>
+      <rect x="2.5" y="2.5" width="251" height="251" rx="57.5" fill="none" stroke="#243558" stroke-width="1.5"/>
+      <g>
+        <path d="M140 120 Q96 86 70 80 Q100 104 134 132 Q140 128 140 120 Z" fill="url(#lwing2)"/>
+        <path d="M140 130 Q98 152 72 166 Q108 152 138 124 Q142 126 140 130 Z" fill="url(#lwing)"/>
+        <path d="M128 134 Q124 124 134 118 Q150 108 168 98 L182 92 L174 106 Q162 116 150 120 Q156 130 148 136 Q140 130 134 132 Z" fill="url(#lwing)"/>
+        <path d="M156 110 Q150 98 142 92 Q152 104 150 116 Z" fill="url(#lwing2)"/>
+      </g>
+      <circle cx="72" cy="166" r="9" fill="url(#lseal)"/>
+    </svg>
+    <span id="brandName">waxwing</span> <span id="kindPill" class="pill testnet">testnet</span></h1>
+  <div class="netbar">
+    <div class="net"><span id="netDot" class="dot"></span><span id="netLabel">connecting…</span></div>
+    <select id="netSelect" title="Switch network"></select>
+  </div>
+
+  <!-- Wallet state -->
+  <div class="card">
+    <h2>Wallet <span id="lockPill" class="pill lock">locked</span></h2>
+    <div id="acctList" class="muted">No keys yet.</div>
+
+    <div class="tabs">
+      <button id="tabUnlock" class="active">Unlock</button>
+      <button id="tabCreate">New key</button>
+      <button id="tabImport">Import</button>
+    </div>
+
+    <!-- Unlock -->
+    <div id="paneUnlock">
+      <label>Password</label>
+      <div class="row">
+        <input id="ulPass" type="password" placeholder="keystore password" />
+        <button id="ulBtn" style="flex:0 0 auto">Unlock</button>
+      </div>
+      <button id="lockBtn" class="ghost" style="width:100%;margin-top:8px">Lock wallet</button>
+    </div>
+
+    <!-- Create -->
+    <div id="paneCreate" class="hide">
+      <label>New password (encrypts the generated key)</label>
+      <input id="cnPass" type="password" placeholder="choose a password" />
+      <label>Bind to account name (optional)</label>
+      <input id="cnAcct" placeholder="leave blank to bind later" autocomplete="off" spellcheck="false" />
+      <button id="cnBtn" style="width:100%;margin-top:10px">Generate key</button>
+      <div class="hint">Generates a K1 keypair (works on any Antelope chain — WAX/EOS). The private key is encrypted
+        (AES-256-GCM + scrypt) and never leaves this machine. To use it on-chain, fund/create an account bound to its
+        public key, then set the account name.</div>
+    </div>
+
+    <!-- Import -->
+    <div id="paneImport" class="hide">
+      <label>Password (encrypts this key)</label>
+      <input id="imPass" type="password" placeholder="password" />
+      <label>Private key (PVT_K1_… or WIF 5…)</label>
+      <input id="imKey" placeholder="private key" autocomplete="off" spellcheck="false" />
+      <label>Account name (optional)</label>
+      <input id="imAcct" placeholder="on-chain account this key controls" autocomplete="off" spellcheck="false" />
+      <button id="imBtn" style="width:100%;margin-top:10px">Import key</button>
+    </div>
+    <div id="walMsg" class="hint hide"></div>
+  </div>
+
+  <!-- Account view -->
+  <div class="card">
+    <h2>Account</h2>
+    <div class="row">
+      <input id="acct" placeholder="account name (e.g. waxswedenorg)" autocomplete="off" spellcheck="false" />
+      <button id="lookupBtn" style="flex:0 0 auto">Lookup</button>
+    </div>
+    <div id="acctView" class="hide">
+      <div class="big" id="waxBal" style="margin:12px 0 10px;">0 <small>WAX</small></div>
+      <div class="kv"><span class="k">Account</span><span id="acctName">—</span></div>
+      <div class="kv"><span class="k">Created</span><span id="created">—</span></div>
+      <div class="kv"><span class="k">CPU</span><span id="cpu">—</span></div>
+      <div class="kv"><span class="k">NET</span><span id="net">—</span></div>
+      <div class="kv"><span class="k">RAM</span><span id="ram">—</span></div>
+      <div id="otherTokens"></div>
+    </div>
+    <div id="acctErr" class="err hint hide"></div>
+  </div>
+
+  <!-- Send -->
+  <div class="card">
+    <h2>Send <span class="pill">real broadcast</span></h2>
+    <label>From (an unlocked account)</label>
+    <select id="sndFrom"><option value="">— unlock a wallet first —</option></select>
+    <div class="row" style="margin-top:8px">
+      <div><label>To</label><input id="sndTo" placeholder="recipient" autocomplete="off" spellcheck="false" /></div>
+      <div><label>Amount (<span id="amtSym">WAX</span>)</label><input id="sndAmt" placeholder="1.0" inputmode="decimal" /></div>
+    </div>
+    <label>Memo</label>
+    <input id="sndMemo" placeholder="optional" />
+    <button id="sndBtn" class="seal" style="width:100%;margin-top:10px">Seal &amp; Send</button>
+    <div id="sndMsg" class="hint hide"></div>
+    <div id="sndWarn" class="warn-banner">⚠️ Testnet. This signs locally with your stored key and broadcasts a real transaction.</div>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <h2>History <button id="histBtn" class="ghost" style="padding:3px 9px;font-size:11px">Refresh</button></h2>
+    <div id="histView" class="hist muted">Look up or select an account to see its recent transactions.</div>
+  </div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const PLUGIN = "wax-wallet";
+let lastAccount = "";
+// Current network view, kept in sync with the server's selected network.
+let CHAIN = { id: "wax-testnet", name: "WAX Testnet", kind: "testnet", coreSymbol: "WAX", explorerTx: "https://testnet.waxblock.io/transaction/" };
+
+async function cmd(c, args) {
+  const r = await fetch(`/plugin/${PLUGIN}/cmd`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ cmd: c, args: args || {} }),
+  });
+  return r.json();
+}
+function flash(el, msg, ok) {
+  el.textContent = msg; el.className = "hint " + (ok ? "okmsg" : "err");
+  el.classList.remove("hide");
+}
+
+// ── Brand (single source of truth on the server) ──────────────────
+async function loadBrand() {
+  try {
+    const r = await cmd("brand");
+    if (!r.ok || !r.brand) return;
+    const b = r.brand;
+    // The waxwing mark is inlined as SVG in the header — don't overwrite it with
+    // the emoji fallback. Name/tagline still come from the single source (/brand).
+    const placeholder = (s) => !s || /^<<.*>>$/.test(s);
+    if (!placeholder(b.name)) { $("brandName").textContent = b.name; document.title = b.name; }
+    if (b.tagline) { $("brandName").title = b.tagline; $("brandLogo").setAttribute("aria-label", `${b.name} — ${b.tagline}`); }
+  } catch {}
+}
+
+// ── Network switcher ──────────────────────────────────────────────
+async function loadNetworks() {
+  const r = await cmd("networks");
+  if (!r.ok) return;
+  const sel = $("netSelect");
+  sel.innerHTML = r.networks.map(n =>
+    `<option value="${n.id}" ${n.id===r.current?"selected":""}>${n.name}</option>`).join("");
+  const cur = r.networks.find(n => n.id === r.current) || r.networks[0];
+  if (cur) applyChain(cur);
+}
+function applyChain(n) {
+  CHAIN = n;
+  $("kindPill").textContent = n.kind;
+  $("kindPill").className = "pill " + (n.kind === "mainnet" ? "mainnet" : "testnet");
+  $("amtSym").textContent = n.coreSymbol;
+  const danger = n.kind === "mainnet";
+  $("sndWarn").className = "warn-banner" + (danger ? " danger" : "");
+  $("sndWarn").innerHTML = danger
+    ? `⛔ <b>${n.name}</b> — REAL value. This signs locally and broadcasts a live mainnet transaction.`
+    : `⚠️ <b>${n.name}</b>. This signs locally with your stored key and broadcasts a real testnet transaction.`;
+}
+$("netSelect").onchange = async () => {
+  const id = $("netSelect").value;
+  const r = await cmd("setnetwork", { network: id });
+  if (r.ok && r.chain) applyChain(r.chain);
+  // refresh everything for the new chain
+  pingNet(); refreshStatus();
+  if (lastAccount) loadAccount(lastAccount);
+};
+
+// ── Network badge ─────────────────────────────────────────────────
+async function pingNet() {
+  try {
+    const r = await cmd("chaininfo");
+    if (!r.ok) throw new Error(r.msg);
+    $("netDot").classList.toggle("on", !!r.info.chainMatches);
+    $("netLabel").textContent = `${r.info.network} · #${r.info.headBlock}`;
+    $("netLabel").title = `chain ${r.info.chainId}` + (r.info.chainMatches ? "" : " ⚠ chainId mismatch");
+  } catch { $("netDot").classList.remove("on"); $("netLabel").textContent = "RPC offline"; }
+}
+
+// ── Wallet status / account list ──────────────────────────────────
+async function refreshStatus() {
+  const r = await cmd("status");
+  if (!r.ok) return;
+  const st = r.status;
+  $("lockPill").textContent = st.unlocked ? `unlocked (${st.unlockedKeys})` : "locked";
+  $("lockPill").className = "pill " + (st.unlocked ? "unlock" : "lock");
+  const accs = st.accounts || [];
+  $("acctList").innerHTML = accs.length
+    ? accs.map(a => `<div class="kv"><span class="k">${a.account || a.label}</span><span class="mono">${a.publicKey.slice(0,20)}…</span></div>`).join("")
+    : `<span class="muted">No keys yet — create or import one below.</span>`;
+  // populate Send "from" with accounts that have an on-chain name
+  const bound = accs.filter(a => a.account);
+  const sel = $("sndFrom");
+  sel.innerHTML = bound.length
+    ? bound.map(a => `<option value="${a.account}">${a.account} (${a.permission})</option>`).join("")
+    : `<option value="">— no bound account —</option>`;
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────
+function showTab(which) {
+  for (const t of ["Unlock","Create","Import"]) {
+    $("tab"+t).classList.toggle("active", t===which);
+    $("pane"+t).classList.toggle("hide", t!==which);
+  }
+}
+$("tabUnlock").onclick = () => showTab("Unlock");
+$("tabCreate").onclick = () => showTab("Create");
+$("tabImport").onclick = () => showTab("Import");
+
+// ── Unlock / lock ─────────────────────────────────────────────────
+$("ulBtn").onclick = async () => {
+  const r = await cmd("unlock", { password: $("ulPass").value });
+  if (r.ok) { flash($("walMsg"), `Unlocked ${r.unlocked} key(s).`, true); $("ulPass").value=""; }
+  else flash($("walMsg"), r.msg, false);
+  refreshStatus();
+};
+$("lockBtn").onclick = async () => { await cmd("lock"); flash($("walMsg"), "Wallet locked.", true); refreshStatus(); };
+
+// ── Create ────────────────────────────────────────────────────────
+$("cnBtn").onclick = async () => {
+  const r = await cmd("create", { password: $("cnPass").value, account: $("cnAcct").value.trim() || undefined });
+  if (r.ok) { flash($("walMsg"), `New key: ${r.publicKey}`, true); $("cnPass").value=""; }
+  else flash($("walMsg"), r.msg, false);
+  refreshStatus();
+};
+
+// ── Import ────────────────────────────────────────────────────────
+$("imBtn").onclick = async () => {
+  const r = await cmd("import", { password: $("imPass").value, privkey: $("imKey").value.trim(), account: $("imAcct").value.trim() || undefined });
+  if (r.ok) { flash($("walMsg"), `Imported: ${r.publicKey}`, true); $("imPass").value=""; $("imKey").value=""; }
+  else flash($("walMsg"), r.msg, false);
+  refreshStatus();
+};
+
+// ── Account lookup ────────────────────────────────────────────────
+async function loadAccount(name) {
+  $("acctErr").classList.add("hide");
+  if (!name) return;
+  lastAccount = name;
+  const a = await cmd("account", { name });
+  if (!a.ok) { flash($("acctErr"), a.msg || "account not found", false); $("acctView").classList.add("hide"); return; }
+  const acc = a.account;
+  const wax = (acc.coreBalance || `0 ${CHAIN.coreSymbol}`).split(" ");
+  $("waxBal").innerHTML = `${Number(wax[0]).toLocaleString(undefined,{maximumFractionDigits:8})} <small>${wax[1]||CHAIN.coreSymbol}</small>`;
+  $("acctName").textContent = acc.account;
+  $("created").textContent = (acc.created || "").replace("T"," ").slice(0,19) || "—";
+  $("cpu").textContent = acc.cpu ? fmtRes(acc.cpu,"µs") : "—";
+  $("net").textContent = acc.net ? fmtRes(acc.net,"bytes") : "—";
+  $("ram").textContent = `${acc.ram.usage} / ${acc.ram.quota} bytes`;
+  $("acctView").classList.remove("hide");
+  const b = await cmd("balance", { name });
+  const others = (b.ok ? b.balance.balances : []).filter(x => !(new RegExp(` ${CHAIN.coreSymbol}$`)).test(x));
+  $("otherTokens").innerHTML = others.length
+    ? `<div class="kv"><span class="k">Tokens</span><span>${others.join(", ")}</span></div>` : "";
+  loadHistory(name);
+}
+function fmtRes(r, unit) {
+  const pct = r.max ? Math.round((r.used / r.max) * 100) : 0;
+  return `${pct}% used · ${r.available} ${unit} free`;
+}
+$("lookupBtn").onclick = () => loadAccount($("acct").value.trim());
+$("acct").addEventListener("keydown", e => { if (e.key==="Enter") loadAccount($("acct").value.trim()); });
+
+// ── History ───────────────────────────────────────────────────────
+async function loadHistory(name) {
+  if (!name) return;
+  $("histView").textContent = "Loading…";
+  const r = await cmd("history", { name, limit: 15 });
+  if (!r.ok) { $("histView").innerHTML = `<span class="muted">History unavailable: ${r.msg}</span>`; return; }
+  const acts = r.history.actions || [];
+  const explorer = r.history.explorerTx || CHAIN.explorerTx;
+  if (!acts.length) { $("histView").innerHTML = `<span class="muted">No transactions yet.</span>`; return; }
+  $("histView").innerHTML = acts.map(x => {
+    const out = x.from === name;
+    const cls = out ? "out" : "in";
+    const arrow = out ? `→ ${x.to||"?"}` : `← ${x.from||"?"}`;
+    const amt = x.amount || x.quantity || "";
+    const t = (x.time||"").replace("T"," ").slice(5,16);
+    const tx = x.txId ? `<a href="${explorer + x.txId}" target="_blank" title="${x.txId}">tx</a>` : "";
+    return `<div class="it"><div class="row" style="gap:8px"><span style="flex:1">${x.action} ${arrow}</span>
+      <span class="amt ${cls}">${out?"-":"+"}${amt}</span></div>
+      <div class="muted" style="font-size:11px">${t} · ${tx} ${x.memo?("· "+x.memo):""}</div></div>`;
+  }).join("");
+}
+$("histBtn").onclick = () => loadHistory(lastAccount || $("acct").value.trim());
+
+// ── Send ──────────────────────────────────────────────────────────
+$("sndBtn").onclick = async () => {
+  const from = $("sndFrom").value, to = $("sndTo").value.trim(), amt = $("sndAmt").value.trim();
+  if (!from || !to || !amt) { flash($("sndMsg"), "from, to and amount are required", false); return; }
+  $("sndBtn").disabled = true; $("sndBtn").textContent = "Broadcasting…";
+  const r = await cmd("send", { from, to, quantity: amt + " " + CHAIN.coreSymbol, memo: $("sndMemo").value });
+  if (r.ok) {
+    const tx = r.result.txId;
+    $("sndMsg").innerHTML = `✅ Broadcast on ${r.result.network}. <a href="${r.result.explorer}" target="_blank" class="mono">${tx.slice(0,24)}…</a>`;
+    $("sndMsg").className = "hint okmsg"; $("sndMsg").classList.remove("hide");
+    $("sndTo").value = ""; $("sndAmt").value = ""; $("sndMemo").value = "";
+    setTimeout(() => { loadAccount(from); }, 2500);
+  } else flash($("sndMsg"), r.msg, false);
+  $("sndBtn").disabled = false; $("sndBtn").textContent = "Seal & Send";
+};
+
+// ── Live updates from agent-driven changes ────────────────────────
+try {
+  const ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = (m) => { try { const e = JSON.parse(m.data);
+    if (e.type==="plugin.event" && e.plugin===PLUGIN) refreshStatus(); } catch {} };
+} catch {}
+
+(async () => {
+  await loadBrand();
+  await loadNetworks();   // sets CHAIN + switcher to the server's selected net
+  pingNet();
+  refreshStatus();
+})();
+</script>
+</body>
+</html>

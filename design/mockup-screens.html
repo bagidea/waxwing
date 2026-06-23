@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/>
+<title>Sigil — Screens</title>
+<style>
+:root{
+  --bg:#0a1020; --bg2:#0c1322; --panel:#111b30; --panel2:#0e1729; --line:#1f2d49;
+  --fg:#e6eeff; --mut:#7f93b8; --dim:#5a6b8c;
+  --acc:#5ec8ff; --acc2:#7aa2ff; --seal:#ffb86b; --seal2:#ff9f45;
+  --ok:#5bd6a0; --warn:#ffcf6b; --danger:#ff6b81;
+  --radius:26px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+*{scrollbar-width:thin;scrollbar-color:rgba(110,180,255,0.30) transparent;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(110,180,255,0.22);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(110,180,255,0.45);}
+html,body{font-family:"Segoe UI",system-ui,"Noto Sans Thai",sans-serif;-webkit-font-smoothing:antialiased;}
+body{
+  width:1760px;height:1080px; color:var(--fg); overflow:hidden;
+  background:
+    radial-gradient(900px 600px at 18% -8%, rgba(94,200,255,0.10), transparent 60%),
+    radial-gradient(900px 700px at 96% 110%, rgba(122,162,255,0.10), transparent 55%),
+    #070b16;
+  position:relative;
+}
+.grid-bg{position:absolute;inset:0;background-image:
+  linear-gradient(rgba(120,160,230,0.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(120,160,230,0.045) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(1200px 700px at 50% 35%,#000,transparent 85%);}
+.board{position:relative;padding:46px 56px;}
+.head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:30px;}
+.brandline{display:flex;align-items:center;gap:16px;}
+.logo{width:54px;height:54px;border-radius:16px;position:relative;
+  background:linear-gradient(150deg,#0f2236,#14305a);border:1px solid rgba(120,170,255,.35);
+  box-shadow:0 8px 26px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;}
+.logo svg{width:32px;height:32px;}
+.wm{font-size:30px;font-weight:700;letter-spacing:.14em;}
+.wm b{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.tag{font-size:13px;color:var(--mut);margin-top:3px;letter-spacing:.02em}
+.headmeta{text-align:right;color:var(--dim);font-size:12px;line-height:1.7}
+.headmeta b{color:var(--mut);font-weight:600}
+.frames{display:flex;gap:30px;}
+.col{width:374px;}
+.cap{margin-top:14px;text-align:center;}
+.cap .n{font-size:13px;font-weight:700;color:#cdddff;letter-spacing:.03em}
+.cap .d{font-size:11.5px;color:var(--dim);margin-top:2px}
+/* phone frame */
+.ph{height:760px;border-radius:var(--radius);position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#0c1426,#0a1020);
+  border:1px solid var(--line);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.02), inset 0 1px 0 rgba(255,255,255,.05);}
+.scr{position:absolute;inset:0;padding:20px 18px;display:flex;flex-direction:column;}
+/* status bar */
+.sb{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:14px;}
+.net{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;background:rgba(255,255,255,.02)}
+.net .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+/* topbar acct */
+.acctbar{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+.av{width:38px;height:38px;border-radius:12px;background:conic-gradient(from 200deg,#5ec8ff,#7aa2ff,#a98bff,#5ec8ff);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.acctbar .who{flex:1}
+.acctbar .who .nm{font-size:14px;font-weight:700}
+.acctbar .who .sub{font-size:11px;color:var(--dim)}
+.icbtn{width:34px;height:34px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.02);
+  display:flex;align-items:center;justify-content:center;color:var(--mut)}
+/* cards */
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:18px;padding:16px;}
+.lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--dim);font-weight:600}
+.bal{font-size:34px;font-weight:800;letter-spacing:-.02em;margin-top:8px;line-height:1}
+.bal small{font-size:15px;color:var(--mut);font-weight:700}
+.fiat{display:flex;align-items:center;gap:9px;margin-top:9px;font-size:13px;color:var(--mut)}
+.chip-up{font-size:11px;color:var(--ok);background:rgba(91,214,160,.12);border:1px solid rgba(91,214,160,.3);border-radius:999px;padding:2px 8px;font-weight:700}
+.glow-card{position:relative;overflow:hidden}
+.glow-card:before{content:"";position:absolute;width:240px;height:240px;right:-60px;top:-110px;border-radius:50%;
+  background:radial-gradient(circle,rgba(94,200,255,.22),transparent 65%);filter:blur(6px)}
+/* actions */
+.acts{display:flex;gap:10px;margin-top:14px}
+.act{flex:1;border-radius:14px;padding:13px 0;text-align:center;font-size:12.5px;font-weight:700;border:1px solid var(--line);
+  background:rgba(255,255,255,.02);color:#cfe0ff;display:flex;flex-direction:column;align-items:center;gap:7px}
+.act.pri{background:linear-gradient(180deg,#2a6da3,#1d5589);border-color:#3f8fce;color:#eaf6ff;
+  box-shadow:0 8px 22px -8px rgba(94,200,255,.6)}
+.act svg{width:18px;height:18px}
+/* resources */
+.res{display:flex;gap:10px;margin-top:8px}
+.res .r{flex:1}
+.res .r .t{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:5px}
+.res .r .t b{color:#cfe0ff;font-weight:700}
+.bar{height:6px;border-radius:999px;background:#0a1120;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+/* token rows */
+.trow{display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid var(--line)}
+.trow:first-child{border-top:none}
+.ti{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#04111e}
+.trow .nm{flex:1;font-size:13px;font-weight:600}
+.trow .nm small{display:block;color:var(--dim);font-size:11px;font-weight:500}
+.trow .amt{text-align:right;font-size:13px;font-weight:700}
+.trow .amt small{display:block;color:var(--dim);font-size:11px;font-weight:500}
+/* bottom nav */
+.nav{margin-top:auto;display:flex;justify-content:space-around;padding-top:14px;border-top:1px solid var(--line)}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--dim)}
+.nav a.on{color:var(--acc)}
+.nav svg{width:20px;height:20px}
+/* inputs */
+.field{margin-top:14px}
+.field label{display:block;font-size:11px;color:var(--mut);margin-bottom:6px;letter-spacing:.02em}
+.inp{background:#0a1120;border:1px solid var(--line);border-radius:13px;padding:13px 14px;font-size:14px;color:var(--fg);display:flex;align-items:center;gap:10px}
+.inp.focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(94,200,255,.12)}
+.inp input{background:none;border:none;outline:none;color:var(--fg);font-size:14px;flex:1;font-family:inherit}
+.inp .ok{color:var(--ok)}
+.amtbox{background:#0a1120;border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:14px}
+.amtbox .top{display:flex;align-items:center;justify-content:space-between}
+.amtbig{font-size:30px;font-weight:800;letter-spacing:-.01em}
+.tokpick{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:13px;font-weight:700}
+.tokpick .ti{width:22px;height:22px;border-radius:7px;font-size:10px}
+.amtbox .bot{display:flex;justify-content:space-between;margin-top:11px;font-size:11.5px;color:var(--dim)}
+.maxb{color:var(--acc);font-weight:700}
+.note{display:flex;gap:9px;align-items:flex-start;font-size:11px;color:var(--mut);background:rgba(94,200,255,.05);
+  border:1px solid rgba(94,200,255,.18);border-radius:12px;padding:11px 12px;margin-top:14px;line-height:1.5}
+.note svg{width:15px;height:15px;flex:none;margin-top:1px;color:var(--acc)}
+/* seal CTA */
+.seal-cta{margin-top:auto;border:none;border-radius:16px;padding:16px;font-size:15px;font-weight:800;letter-spacing:.02em;
+  color:#2a1605;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
+  background:linear-gradient(180deg,var(--seal),var(--seal2));
+  box-shadow:0 12px 30px -8px rgba(255,159,69,.55), inset 0 1px 0 rgba(255,255,255,.4)}
+.seal-cta svg{width:20px;height:20px}
+.subtle-c{text-align:center;font-size:11px;color:var(--dim);margin-top:12px}
+/* unlock */
+.unlock{align-items:center;justify-content:center;text-align:center}
+.seal-big{width:108px;height:108px;border-radius:32px;position:relative;
+  background:linear-gradient(150deg,#0f2236,#142f57);border:1px solid rgba(120,170,255,.4);
+  box-shadow:0 18px 50px -10px rgba(94,200,255,.4), inset 0 1px 0 rgba(255,255,255,.16);
+  display:flex;align-items:center;justify-content:center;margin-bottom:22px}
+.seal-big:after{content:"";position:absolute;inset:-2px;border-radius:34px;
+  background:linear-gradient(150deg,transparent 60%,rgba(255,184,107,.5));mask:linear-gradient(#000,#000);opacity:.0}
+.seal-big svg{width:58px;height:58px}
+.u-name{font-size:26px;font-weight:800;letter-spacing:.18em;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.u-sub{font-size:12.5px;color:var(--mut);margin-top:8px}
+.acct-chip{display:inline-flex;align-items:center;gap:9px;margin:26px 0 6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:999px;padding:7px 14px 7px 8px;font-size:13px;font-weight:600}
+.acct-chip .av{width:26px;height:26px;border-radius:8px}
+.pwd{width:100%;background:#0a1120;border:1px solid var(--acc);border-radius:14px;padding:14px 16px;margin-top:18px;display:flex;align-items:center;gap:10px;box-shadow:0 0 0 3px rgba(94,200,255,.12)}
+.pwd .dots{flex:1;letter-spacing:7px;font-size:20px;color:var(--fg)}
+.pwd .eye{color:var(--mut)}
+.u-btn{width:100%;margin-top:14px;border:none;border-radius:14px;padding:15px;font-size:14.5px;font-weight:800;cursor:pointer;
+  background:linear-gradient(180deg,#2a6da3,#1d5589);color:#eaf6ff;box-shadow:0 12px 28px -8px rgba(94,200,255,.55)}
+.bio{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:16px;font-size:12.5px;color:var(--acc);font-weight:600}
+.bio svg{width:18px;height:18px}
+.u-foot{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;color:var(--dim)}
+.u-foot svg{width:13px;height:13px;color:var(--ok)}
+/* nft */
+.fbar{display:flex;gap:7px;margin:4px 0 14px;flex-wrap:wrap}
+.fchip{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:5px 11px;color:var(--mut)}
+.fchip.on{background:rgba(94,200,255,.12);border-color:rgba(94,200,255,.4);color:var(--acc);font-weight:700}
+.nftscroll{overflow-y:auto;margin:0 -4px;padding:0 4px;flex:1}
+.nftgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.nft{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--panel2)}
+.nft .img{height:108px;position:relative;display:flex;align-items:flex-end;padding:8px}
+.nft .rar{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.2)}
+.nft .meta{padding:9px 10px 11px}
+.nft .meta .nm{font-size:12px;font-weight:700}
+.nft .meta .col{font-size:10px;color:var(--dim);margin-top:2px}
+.nft .meta .mint{font-size:9.5px;color:var(--mut);margin-top:6px;font-family:ui-monospace,Consolas,monospace}
+.soon{font-size:10px;font-weight:800;color:var(--seal);background:rgba(255,159,69,.12);border:1px solid rgba(255,159,69,.35);border-radius:999px;padding:2px 9px;letter-spacing:.05em}
+.ttl{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ttl .h{font-size:16px;font-weight:800}
+.back{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.back svg{width:18px;height:18px;color:var(--mut)}
+.back .h{font-size:16px;font-weight:800}
+</style></head>
+<body>
+<div class="grid-bg"></div>
+<div class="board">
+  <div class="head">
+    <div>
+      <div class="brandline">
+        <div class="logo">
+          <svg viewBox="0 0 32 32" fill="none">
+            <defs><linearGradient id="lg" x1="0" y1="0" x2="32" y2="32">
+              <stop stop-color="#7ad4ff"/><stop offset="1" stop-color="#7aa2ff"/></linearGradient></defs>
+            <path d="M16 2 L27 8 V18 C27 25 22 29 16 31 C10 29 5 25 5 18 V8 Z" stroke="url(#lg)" stroke-width="1.7" fill="rgba(94,200,255,.08)"/>
+            <circle cx="16" cy="14" r="3.4" stroke="url(#lg)" stroke-width="1.7"/>
+            <path d="M16 17.2 V23" stroke="url(#lg)" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="wm"><b>SIGIL</b></div>
+          <div class="tag">A WAX wallet by BagIdea Office — your seal, your keys.</div>
+        </div>
+      </div>
+    </div>
+    <div class="headmeta">
+      <div><b>Flagship UI concept</b> · v1 mockup</div>
+      <div>Dark theme · slim blue-glass scrollbar</div>
+      <div>Non-custodial · WharfKit signing · WAX</div>
+    </div>
+  </div>
+
+  <div class="frames">
+
+    <!-- 1. BALANCE / HOME -->
+    <div class="col">
+      <div class="ph"><div class="scr">
+        <div class="sb"><span>9:41</span><span class="net"><span class="dot"></span>WAX Testnet · #284,019,332</span></div>
+        <div class="acctbar">
+          <div class="av"></div>
+          <div class="who"><div class="nm">monanisa.wam</div><div class="sub">active · owner</div></div>
+          <div class="icbtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          </div>
+        </div>
+        <div class="card glow-card">
+          <div class="lbl">Total balance</div>
+          <div class="bal">12,480.5043 <small>WAX</small></div>
+          <div class="fiat">≈ $1,043.20 USD <span class="chip-up">▲ 2.4%</span></div>
+          <div class="acts">
+            <div class="act pri">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Send</div>
+            <div class="act">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>Receive</div>
+            <div class="act">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4 2 7L12 17l-6.5 3 2-7L2 9h7z"/></svg>Stake</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="lbl" style="margin-bottom:11px">Network resources</div>
+          <div class="res">
+            <div class="r"><div class="t"><span>CPU</span><b>38%</b></div><div class="bar"><i style="width:38%"></i></div></div>
+            <div class="r"><div class="t"><span>NET</span><b>12%</b></div><div class="bar"><i style="width:12%"></i></div></div>
+            <div class="r"><div class="t"><span>RAM</span><b>61%</b></div><div class="bar"><i style="width:61%"></i></div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px;padding-top:6px;padding-bottom:6px">
+          <div class="trow">
+            <div class="ti" style="background:linear-gradient(135deg,#5ec8ff,#7aa2ff)">W</div>
+            <div class="nm">WAX<small>WAX Token</small></div>
+            <div class="amt">12,480.50<small>$1,043.20</small></div>
+          </div>
+          <div class="trow">
+            <div class="ti" style="background:linear-gradient(135deg,#ffd66b,#ff9f45)">T</div>
+            <div class="nm">TLM<small>Alien Worlds</small></div>
+            <div class="amt">8,902.00<small>$214.05</small></div>
+          </div>
+          <div class="trow">
+            <div class="ti" style="background:linear-gradient(135deg,#a98bff,#7aa2ff)">A</div>
+            <div class="nm">AETHER<small>Wombat Dungeon</small></div>
+            <div class="amt">540.00<small>$61.20</small></div>
+          </div>
+        </div>
+        <div class="nav">
+          <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>Home</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Send</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>NFTs</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap"><div class="n">1 · Balance / Home</div><div class="d">Account, WAX balance, resource gauges, tokens</div></div>
+    </div>
+
+    <!-- 2. SEND -->
+    <div class="col">
+      <div class="ph"><div class="scr">
+        <div class="sb"><span>9:41</span><span class="net"><span class="dot"></span>WAX Testnet</span></div>
+        <div class="back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+          <div class="h">Send WAX</div>
+        </div>
+        <div class="field">
+          <label>To account</label>
+          <div class="inp"><span style="color:var(--mut)">@</span><input value="yamamoto.wam" readonly/>
+            <svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:16px;height:16px"><path d="M20 6L9 17l-5-5"/></svg></div>
+        </div>
+        <div class="amtbox">
+          <div class="top">
+            <div class="amtbig">250.0000</div>
+            <div class="tokpick"><span class="ti" style="background:linear-gradient(135deg,#5ec8ff,#7aa2ff)">W</span>WAX
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M6 9l6 6 6-6"/></svg></div>
+          </div>
+          <div class="bot"><span>≈ $20.90 USD</span><span>Available 12,480.50 · <span class="maxb">Max</span></span></div>
+        </div>
+        <div class="field">
+          <label>Memo (optional)</label>
+          <div class="inp"><input value="design retainer · Q3" readonly/></div>
+        </div>
+        <div class="note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7z"/><path d="M9 12l2 2 4-4"/></svg>
+          <span><b style="color:#cfe0ff">Signed in your wallet.</b> Sigil never holds your key — you'll approve this in your connected wallet. Est. resource cost ~0.3 ms CPU.</span>
+        </div>
+        <button class="seal-cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="5"/><path d="M9 13l-2 8 5-3 5 3-2-8"/></svg>
+          Seal &amp; Send
+        </button>
+        <div class="subtle-c">You'll confirm the signature in your wallet</div>
+      </div></div>
+      <div class="cap"><div class="n">2 · Send</div><div class="d">Recipient, amount, memo, the amber “seal” moment</div></div>
+    </div>
+
+    <!-- 3. UNLOCK -->
+    <div class="col">
+      <div class="ph"><div class="scr unlock">
+        <div class="sb" style="position:absolute;top:20px;left:18px;right:18px"><span>9:41</span><span class="net"><span class="dot"></span>WAX</span></div>
+        <div class="seal-big">
+          <svg viewBox="0 0 32 32" fill="none">
+            <defs><linearGradient id="lg2" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#7ad4ff"/><stop offset="1" stop-color="#7aa2ff"/></linearGradient></defs>
+            <path d="M16 2 L27 8 V18 C27 25 22 29 16 31 C10 29 5 25 5 18 V8 Z" stroke="url(#lg2)" stroke-width="1.6" fill="rgba(94,200,255,.08)"/>
+            <circle cx="16" cy="14" r="3.4" stroke="url(#lg2)" stroke-width="1.6"/>
+            <path d="M16 17.2 V23" stroke="url(#lg2)" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="u-name">SIGIL</div>
+        <div class="u-sub">Welcome back. Unlock to continue.</div>
+        <div class="acct-chip"><span class="av"></span>monanisa.wam</div>
+        <div class="pwd"><div class="dots">••••••••••</div>
+          <svg class="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <button class="u-btn">Unlock</button>
+        <div class="bio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11v3M8 6a6 6 0 018 0M6 10a8 8 0 0112 0v2M9 17a3 3 0 006 0"/></svg>
+          Use Windows Hello
+        </div>
+        <div class="u-foot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+          Your keys never touch our servers
+        </div>
+      </div></div>
+      <div class="cap"><div class="n">3 · Unlock</div><div class="d">App lock — password + Windows Hello, non-custodial note</div></div>
+    </div>
+
+    <!-- 4. NFT (future) -->
+    <div class="col">
+      <div class="ph"><div class="scr">
+        <div class="sb"><span>9:41</span><span class="net"><span class="dot"></span>WAX Testnet</span></div>
+        <div class="ttl"><div class="h">Collectibles</div><span class="soon">FUTURE</span></div>
+        <div class="fbar">
+          <span class="fchip on">All · 24</span><span class="fchip">Alien Worlds</span><span class="fchip">Wombat</span><span class="fchip">Farming Tales</span>
+        </div>
+        <div class="nftscroll"><div class="nftgrid">
+          <div class="nft"><div class="img" style="background:linear-gradient(135deg,#1b3a5e,#5ec8ff)"><span class="rar" style="color:#ffd66b">Legendary</span></div>
+            <div class="meta"><div class="nm">Magnor</div><div class="col">Alien Worlds · Tools</div><div class="mint">#1,204 / 5,000</div></div></div>
+          <div class="nft"><div class="img" style="background:linear-gradient(135deg,#3a1b5e,#a98bff)"><span class="rar" style="color:#a98bff">Epic</span></div>
+            <div class="meta"><div class="nm">Void Crystal</div><div class="col">Wombat Dungeon</div><div class="mint">#88 / 1,000</div></div></div>
+          <div class="nft"><div class="img" style="background:linear-gradient(135deg,#1b5e4a,#5bd6a0)"><span class="rar" style="color:#5bd6a0">Rare</span></div>
+            <div class="meta"><div class="nm">Sprout Deed</div><div class="col">Farming Tales</div><div class="mint">#612 / 8,000</div></div></div>
+          <div class="nft"><div class="img" style="background:linear-gradient(135deg,#5e3a1b,#ff9f45)"><span class="rar" style="color:#ff9f45">Mythic</span></div>
+            <div class="meta"><div class="nm">Ember Relic</div><div class="col">Alien Worlds</div><div class="mint">#7 / 250</div></div></div>
+          <div class="nft"><div class="img" style="background:linear-gradient(135deg,#1b2f5e,#7aa2ff)"><span class="rar">Common</span></div>
+            <div class="meta"><div class="nm">Scout Badge</div><div class="col">BagIdea Office</div><div class="mint">#330 / ∞</div></div></div>
+          <div class="nft"><div class="img" style="background:linear-gradient(135deg,#5e1b3a,#ff6b81)"><span class="rar" style="color:#ff6b81">Epic</span></div>
+            <div class="meta"><div class="nm">Crimson Key</div><div class="col">Wombat Dungeon</div><div class="mint">#41 / 500</div></div></div>
+        </div></div>
+      </div></div>
+      <div class="cap"><div class="n">4 · NFTs (future)</div><div class="d">AtomicAssets grid + the signature slim blue-glass scroll</div></div>
+    </div>
+
+  </div>
+</div>
+</body></html>

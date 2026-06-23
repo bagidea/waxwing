@@ -1,0 +1,11 @@
+{
+  "name": "wax-wallet-plugin",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Self-custody WAX testnet wallet (office plugin) — deps for offline signing",
+  "dependencies": {
+    "@wharfkit/antelope": "^1.0.13",
+    "@wharfkit/session": "^1.5.0",
+    "@wharfkit/wallet-plugin-privatekey": "^1.1.0"
+  }
+}
