@@ -4,7 +4,7 @@
 
 ### *Sign. Seal. Soar.*
 
-**A self-custody wallet for Antelope chains (WAX · EOS) — your keys, encrypted, on your machine.**
+**A self-custody wallet for Antelope chains (WAX · EOS · Telos · XPR/Proton) — your keys, encrypted, on your machine.**
 
 ![waxwing hero](brand/hero-waxwing.png)
 
@@ -30,9 +30,9 @@
 
 waxwing is a **real self-custody wallet**: it generates and imports keys, stores the
 **private keys encrypted at rest**, and **signs + broadcasts real transactions** with a key
-it holds locally — no external wallet app, no third-party branding. WAX and EOS are both
-[Antelope](https://antelope.io/) chains, so one keystore and one signing path drive every
-configured network.
+it holds locally — no external wallet app, no third-party branding. WAX, EOS, Telos and
+XPR/Proton are all [Antelope](https://antelope.io/) chains, so one keystore and one signing
+path drive every configured network.
 
 It runs as a [BagIdea Office](https://github.com/bagidea/bagidea-office) plugin — drivable from
 the panel **and** from agents over the same `/cmd` endpoint.
@@ -43,7 +43,7 @@ the panel **and** from agents over the same `/cmd` endpoint.
 - 🔒 Keep private keys **AES-256-GCM encrypted on disk**; decrypt into memory only when unlocked
 - ✍️ **Sign + broadcast** real transfers, and create on-chain accounts (`newaccount`)
 - 👀 Read balances, account resources (CPU/NET/RAM), and transaction history (Hyperion v2)
-- 🌐 Switch between WAX and EOS, testnet and mainnet, from one keystore
+- 🌐 Switch between WAX, EOS, Telos and XPR/Proton, testnet and mainnet, from one keystore
 
 ## 🔐 Security model
 
@@ -65,7 +65,7 @@ The principle: **no server holds your key — it's self-custody, encrypted, and 
 
 ## 🌐 Supported chains
 
-Config-driven via the `CHAINS` map in `index.js`. All four chain ids are verified live.
+Config-driven via the `CHAINS` map in `index.js`. All eight chain ids are verified live.
 
 | id | network | core token | kind |
 |---|---|---|---|
@@ -73,6 +73,10 @@ Config-driven via the `CHAINS` map in `index.js`. All four chain ids are verifie
 | `wax-mainnet` | WAX Mainnet | WAX (8 dp) | ⚠️ mainnet |
 | `eos-testnet` | EOS Jungle4 | EOS (4 dp) | testnet |
 | `eos-mainnet` | EOS Mainnet | EOS (4 dp) | ⚠️ mainnet |
+| `telos-testnet` | Telos Testnet | TLOS (4 dp) | testnet |
+| `telos-mainnet` | Telos Mainnet | TLOS (4 dp) | ⚠️ mainnet |
+| `xpr-testnet` | XPR Network Testnet | XPR (4 dp) | testnet |
+| `xpr-mainnet` | XPR Network (Proton) | XPR (4 dp) | ⚠️ mainnet |
 
 Switch the persisted default with `setnetwork`, or override a single read with
 `{"network":"eos-mainnet"}` in the command args.
