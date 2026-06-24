@@ -125,7 +125,7 @@ Full command list: run `{"cmd":"status"}`, or see [`plugin.json`](plugin.json).
 Real screenshots of the actual panel (`panel.html`, rendered headless — not a mockup):
 **Unlock** (wallet locked) · the **network switcher** (WAX · EOS · Telos · XPR) · and a **Send** on `REAL BROADCAST`.
 
-![waxwing panel](design/preview-screens.png)
+![waxwing panel](brand/preview-hero.png)
 
 <!-- Captures are rendered from the live panel.html. Add a recorded GIF of a live testnet send here as the UI evolves. -->
 
