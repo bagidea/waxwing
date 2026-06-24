@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{
+    --bg:#070B16; --panel:#111B30; --panel2:#0E1729; --line:#1F2D49;
+    --fg:#E6EEFF; --mut:#7F93B8; --dim:#5A6B8C;
+    --acc:#5EC8FF; --acc2:#7AA2FF; --seal:#FFB86B; --seal2:#FF9F45;
+    --ok:#5BD6A0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1280px;height:640px}
+  body{
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    background:var(--bg); color:var(--fg); overflow:hidden; position:relative;
+  }
+  .stage{position:absolute;inset:0;overflow:hidden}
+
+  /* layered ambient light */
+  .glow{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none}
+  .g-cyan{width:760px;height:760px;left:-160px;top:-300px;
+    background:radial-gradient(circle,rgba(94,200,255,.32),transparent 62%)}
+  .g-indigo{width:720px;height:720px;left:380px;top:300px;
+    background:radial-gradient(circle,rgba(122,162,255,.20),transparent 64%)}
+  .g-amber{width:460px;height:460px;right:140px;top:120px;
+    background:radial-gradient(circle,rgba(255,159,69,.18),transparent 60%)}
+
+  /* faint grid + vignette for premium depth */
+  .grid{position:absolute;inset:0;opacity:.5;
+    background-image:linear-gradient(rgba(94,200,255,.05) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(94,200,255,.05) 1px,transparent 1px);
+    background-size:46px 46px;
+    -webkit-mask-image:radial-gradient(circle at 30% 40%,#000,transparent 78%)}
+  .vig{position:absolute;inset:0;
+    background:radial-gradient(120% 120% at 50% 40%,transparent 55%,rgba(0,0,0,.55))}
+
+  /* hairline frame */
+  .frame{position:absolute;inset:22px;border:1px solid rgba(94,200,255,.14);
+    border-radius:26px;pointer-events:none}
+
+  .wrap{position:absolute;inset:0;display:flex;align-items:center;
+    padding:0 86px;gap:40px}
+
+  /* ---- left column ---- */
+  .left{flex:1;max-width:660px}
+  .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+  .eyebrow .dot{width:8px;height:8px;border-radius:50%;
+    background:var(--seal);box-shadow:0 0 14px var(--seal)}
+  .eyebrow span{font-size:15px;font-weight:600;letter-spacing:.32em;
+    text-transform:uppercase;color:var(--mut)}
+
+  .wordmark{display:flex;align-items:flex-start;line-height:.9}
+  .wordmark .wm{font-size:138px;font-weight:800;letter-spacing:-.045em;
+    background:linear-gradient(100deg,#7AA2FF 0%,#5EC8FF 52%,#BFEAFF 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 6px 30px rgba(94,200,255,.28))}
+  /* the amber wax-seal tittle on the i */
+  .seal-dot{width:24px;height:24px;border-radius:50%;margin-top:30px;margin-left:2px;
+    background:radial-gradient(circle at 38% 34%,#FFD9A3,#FFB86B 55%,#FF9F45);
+    box-shadow:0 0 22px rgba(255,159,69,.65)}
+
+  .tag{margin-top:14px;font-size:40px;font-weight:700;letter-spacing:-.01em}
+  .tag b{color:var(--acc)} .tag .s2{color:var(--seal)} .tag .s3{color:#9bd6ff}
+  .tag .sep{color:var(--dim);font-weight:400;margin:0 4px}
+
+  .sub{margin-top:24px;font-size:21px;line-height:1.5;color:var(--mut);max-width:560px}
+  .sub b{color:var(--fg);font-weight:600}
+
+  .chips{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+  .chip{display:flex;align-items:center;gap:9px;padding:11px 18px;border-radius:999px;
+    background:rgba(17,27,48,.7);border:1px solid var(--line);
+    font-size:16px;font-weight:600;color:#cfe0ff;backdrop-filter:blur(6px)}
+  .chip .d{width:9px;height:9px;border-radius:50%}
+  .chip .wax{background:#5EC8FF;box-shadow:0 0 10px #5EC8FF}
+  .chip .eos{background:#7AA2FF;box-shadow:0 0 10px #7AA2FF}
+  .chip.key .d{background:var(--seal);box-shadow:0 0 10px var(--seal)}
+
+  /* ---- right hero ---- */
+  .right{width:420px;height:100%;position:relative;display:flex;
+    align-items:center;justify-content:center}
+  .orb{position:absolute;width:420px;height:420px;border-radius:50%;
+    background:radial-gradient(circle at 42% 38%,rgba(94,200,255,.16),rgba(122,162,255,.05) 55%,transparent 72%);
+    border:1px solid rgba(94,200,255,.12)}
+  .orb.r2{width:300px;height:300px;border-color:rgba(94,200,255,.08)}
+  .bird{position:relative;width:360px;height:360px;
+    filter:drop-shadow(0 12px 40px rgba(94,200,255,.35))}
+
+  /* signing stamp card, floating bottom-right of hero */
+  .signcard{position:absolute;right:6px;bottom:54px;width:248px;
+    background:linear-gradient(160deg,rgba(20,32,56,.92),rgba(12,20,38,.92));
+    border:1px solid rgba(94,200,255,.22);border-radius:18px;padding:16px 18px;
+    box-shadow:0 18px 50px rgba(0,0,0,.5);backdrop-filter:blur(8px)}
+  .signcard .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .signcard .ttl{font-size:13px;font-weight:700;letter-spacing:.04em;color:#cfe0ff}
+  .signcard .net{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--acc);border:1px solid rgba(94,200,255,.3);border-radius:999px;padding:3px 9px}
+  .signcard .ln{height:8px;border-radius:6px;background:rgba(94,200,255,.12);margin:7px 0}
+  .signcard .ln.w70{width:70%} .signcard .ln.w90{width:90%} .signcard .ln.w50{width:50%}
+  .signcard .stamp{display:flex;align-items:center;gap:9px;margin-top:13px;
+    padding-top:12px;border-top:1px solid rgba(94,200,255,.12)}
+  .signcard .wax{width:30px;height:30px;border-radius:50%;flex:none;
+    background:radial-gradient(circle at 36% 32%,#FFD9A3,#FFB86B 52%,#FF9F45);
+    box-shadow:0 0 18px rgba(255,159,69,.6);position:relative}
+  .signcard .wax::after{content:'';position:absolute;inset:7px;border-radius:50%;
+    border:1.5px solid rgba(120,60,10,.35)}
+  .signcard .stamp .t{font-size:13px;font-weight:700;color:var(--seal)}
+  .signcard .stamp .t small{display:block;font-size:10px;font-weight:500;color:var(--dim);letter-spacing:.02em}
+
+  /* footer attribution */
+  .foot{position:absolute;left:86px;bottom:44px;display:flex;align-items:center;gap:12px;
+    font-size:14px;color:var(--dim);font-weight:500;letter-spacing:.02em}
+  .foot .pipe{color:var(--line)}
+  .foot b{color:var(--mut);font-weight:600}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="glow g-cyan"></div>
+  <div class="glow g-indigo"></div>
+  <div class="glow g-amber"></div>
+  <div class="grid"></div>
+  <div class="vig"></div>
+  <div class="frame"></div>
+
+  <div class="wrap">
+    <div class="left">
+      <div class="eyebrow"><i class="dot"></i><span>Self-custody · Antelope-native</span></div>
+
+      <div class="wordmark">
+        <span class="wm">waxw</span>
+        <!-- 'i' built so the amber dot sits as its tittle (we hide the font tittle by drawing our own) -->
+        <span style="position:relative;display:inline-block">
+          <span class="wm">&#305;</span>
+          <i class="seal-dot" style="position:absolute;left:50%;top:6px;transform:translateX(-50%)"></i>
+        </span>
+        <span class="wm">ng</span>
+      </div>
+
+      <div class="tag"><b>Sign.</b> <span class="s2">Seal.</span> <span class="s3">Soar.</span></div>
+
+      <div class="sub">A multichain <b>self-custody wallet</b> for WAX &amp; EOS. Generate keys, hold them yourself, and <b>sign &amp; broadcast</b> real transactions on Antelope.</div>
+
+      <div class="chips">
+        <div class="chip"><i class="d wax"></i>WAX</div>
+        <div class="chip"><i class="d eos"></i>EOS</div>
+        <div class="chip key"><i class="d"></i>Your keys, encrypted</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="orb"></div>
+      <div class="orb r2"></div>
+
+      <!-- neon waxwing in flight -->
+      <svg class="bird" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="wing" x1="15%" y1="90%" x2="90%" y2="8%">
+            <stop offset="0%" stop-color="#7aa2ff"/><stop offset="50%" stop-color="#5ec8ff"/><stop offset="100%" stop-color="#bfeaff"/>
+          </linearGradient>
+          <linearGradient id="wing2" x1="10%" y1="100%" x2="90%" y2="0%">
+            <stop offset="0%" stop-color="#6b8fe6"/><stop offset="100%" stop-color="#5ec8ff"/>
+          </linearGradient>
+          <radialGradient id="seal" cx="38%" cy="34%" r="70%">
+            <stop offset="0%" stop-color="#ffd9a3"/><stop offset="55%" stop-color="#ffb86b"/><stop offset="100%" stop-color="#ff9f45"/>
+          </radialGradient>
+          <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="ambGlow" x="-300%" y="-300%" width="700%" height="700%">
+            <feGaussianBlur stdDeviation="6"/>
+          </filter>
+        </defs>
+        <g filter="url(#glow)">
+          <path d="M140 120 Q96 86 70 80 Q100 104 134 132 Q140 128 140 120 Z" fill="url(#wing2)"/>
+          <path d="M140 130 Q98 152 72 166 Q108 152 138 124 Q142 126 140 130 Z" fill="url(#wing)"/>
+          <path d="M128 134 Q124 124 134 118 Q150 108 168 98 L182 92 L174 106 Q162 116 150 120 Q156 130 148 136 Q140 130 134 132 Z" fill="url(#wing)"/>
+          <path d="M156 110 Q150 98 142 92 Q152 104 150 116 Z" fill="url(#wing2)"/>
+        </g>
+        <circle cx="72" cy="166" r="14" fill="url(#seal)" filter="url(#ambGlow)" opacity="0.8"/>
+        <circle cx="72" cy="166" r="9" fill="url(#seal)"/>
+      </svg>
+
+      <div class="signcard">
+        <div class="row">
+          <div class="ttl">Sign transaction</div>
+          <div class="net">WAX Testnet</div>
+        </div>
+        <div class="ln w90"></div>
+        <div class="ln w70"></div>
+        <div class="ln w50"></div>
+        <div class="stamp">
+          <div class="wax"></div>
+          <div class="t">Sealed &amp; broadcast<small>signed with your key</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>BagIdea Office</b><span class="pipe">·</span>open-source wallet plugin<span class="pipe">·</span>WAX-first, EOS-ready
+  </div>
+</div>
+</body>
+</html>
