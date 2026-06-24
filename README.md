@@ -123,7 +123,7 @@ Full command list: run `{"cmd":"status"}`, or see [`plugin.json`](plugin.json).
 ## 📸 Screenshots
 
 Real screenshots of the actual panel (`panel.html`, rendered headless — not a mockup):
-**Unlock** (wallet locked) · the **network switcher** (WAX · EOS · Telos · XPR) · and a **Send** on `REAL BROADCAST`.
+**Overview** (balance, resources & tokens) · **Resources** — stake CPU/NET with a live **WAX⇄ms** calculator · **Send** · and the amber **Sign** seal (nothing broadcasts until you tap).
 
 ![waxwing panel](design/preview-screens.png)
 
