@@ -1,8 +1,8 @@
 {
   "id": "wax-wallet",
   "name": "🪙 waxwing",
-  "version": "0.5.0",
-  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.5.0: wallet-level password (one password unlocks all networks), auth lifecycle (needsSetup/locked/unlocked), configurable auto-lock, encrypted export/import.",
+  "version": "0.5.1",
+  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.5.1: updated preview screenshots (real 4-tab panel: Overview·Resources·Send·Sign). v0.5.0: wallet-level password, auth lifecycle, auto-lock, encrypted export/import.",
   "brand": {
     "note": "Single source of truth is the BRAND const in index.js (the panel fetches /plugin/wax-wallet/brand). The `name` above is just the office-shelf label and mirrors BRAND.name.",
     "name": "waxwing",
