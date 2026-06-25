@@ -514,6 +514,9 @@ module.exports = (ctx) => {
   const INTENT_TTL_MS = 5 * 60 * 1000;
   const DEFAULT_AUTO_LOCK_MS = 10 * 60 * 1000;
   let lockTimer = null;
+  // When the wallet is unlocked, we keep the verified password in memory so
+  // the user can add/import keys without re-entering it. Cleared on lock/crash.
+  let _vaultPassword = null;
 
   // Read auto-lock duration from the store config (persisted), falling back to default.
   function getAutoLockMs() {
@@ -528,6 +531,7 @@ module.exports = (ctx) => {
 
   function relock() {
     unlocked.clear();
+    _vaultPassword = null;  // wipe in-memory password — must re-enter to unlock
     intents.clear(); // a locked wallet must not leave a signable intent behind
     if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
   }
@@ -582,7 +586,7 @@ module.exports = (ctx) => {
   //   • Subsequent create/import → verify password MATCHES before encrypting.
   //   • unlock → fast-check verifier before expensive per-key GCM decrypt.
   //   • v2/v3 wallets are auto-migrated on load (per-bucket verifier → top-level).
-  function ensureWalletPassword(store, password) {
+  function verifyWalletPassword(store, password) {
     if (store.passwordVerifier) {
       // Verifier exists — must match
       if (!ks.verifyPassword(password, store.passwordVerifier)) {
@@ -602,22 +606,32 @@ module.exports = (ctx) => {
         if (e.message === "bad password") throw new Error("password does not match the existing keys — this wallet was created with a different password");
         throw e; // structural corruption
       }
-      // Password correct — upgrade silently
+      // Password correct — upgrade silently (create verifier so future calls use fast path)
       store.passwordVerifier = ks.createVerifier(password);
       return;
     }
-    // First key ever — set the wallet password.
-    //
-    // ⛔ PRODUCTION GUARD: without WAXWING_KEYSTORE_PATH set, any create/import
-    // hitting an empty store via curl/headless will SET the wallet password →
-    // contaminates the real keystore (the exact bug that locked CEO out).
-    //
-    // Two-tier guard:
-    //   (A) SOFT — always logs a warning to the daemon console.
-    //   (B) HARD — if WAXWING_HARDEN_KEYSTORE=1 is set on the daemon process,
-    //       REJECTS the operation outright. The CEO enables this once to
-    //       permanently prevent accidental overwrites from curl/headless.
-    //   Both guards are skipped when WAXWING_KEYSTORE_PATH is set (test isolation).
+    // No verifier and no accounts — caller should use setInitialWalletPassword
+    throw new Error("INTERNAL: verifyWalletPassword called on empty store — caller should use setInitialWalletPassword instead. This is a bug.");
+  }
+
+  // ⛔ FOOTGUN FIX v0.5.2 — SET initial password ONLY on a CONFIRMED empty store.
+  function setInitialWalletPassword(store, password) {
+    if (!password) throw new Error("password required");
+    // HARD GUARD: refuse to overwrite an existing verifier
+    if (store.passwordVerifier) {
+      throw new Error("INTERNAL: wallet already has a password verifier — cannot set initial password. This is a bug.");
+    }
+    // HARD GUARD: refuse to set initial password when accounts exist
+    if (hasAnyAccounts(store)) {
+      throw new Error("INTERNAL: wallet already has keys — cannot set initial password. This is a bug.");
+    }
+    // DEFENSE-IN-DEPTH: scan raw byNet for any non-empty bucket
+    for (const [, b] of Object.entries(store.byNet || {})) {
+      if (b && Array.isArray(b.accounts) && b.accounts.length > 0) {
+        throw new Error("INTERNAL: wallet has accounts in byNet but hasAnyAccounts returned false. The keystore may be corrupted.");
+      }
+    }
+    // ── Production guard ──
     if (!process.env.WAXWING_KEYSTORE_PATH) {
       console.warn("waxwing: creating wallet password verifier on the default keystore. If this is a headless test, set WAXWING_KEYSTORE_PATH to isolate from the user's real keystore.");
       if (process.env.WAXWING_HARDEN_KEYSTORE === "1") {
@@ -640,11 +654,18 @@ module.exports = (ctx) => {
   // are found → return the list so the user can pick. If NONE → fall back to the
   // caller-supplied `account` name (or leave unbound for later setaccount).
   async function create(password, account, permission, netSel) {
+    // When unlocked, the frontend sends no password — use the in-memory one.
+    if (!password && _vaultPassword) password = _vaultPassword;
     if (!password) throw new Error("password required to encrypt the new key");
     const chain = resolveNet(netSel);
     if (account) assertAccountName(account);
     const store = loadStore(FILE);
-    ensureWalletPassword(store, password);
+    // FOOTGUN FIX v0.5.2: explicit routing — verify existing password OR set initial
+    if (hasAnyAccounts(store) || store.passwordVerifier) {
+      verifyWalletPassword(store, password);
+    } else {
+      setInitialWalletPassword(store, password);
+    }
     const b = bucketOf(store, chain.id);
     const { PrivateKey } = await wharf();
     const priv = PrivateKey.generate("K1");
@@ -719,6 +740,8 @@ module.exports = (ctx) => {
   // to auto-bind on-chain accounts. Single → auto-bind. Multiple → return list.
   // None → fall back to manual binding later.
   async function importKey(password, privkey, account, permission, netSel) {
+    // When unlocked, the frontend sends no password — use the in-memory one.
+    if (!password && _vaultPassword) password = _vaultPassword;
     if (!password) throw new Error("password required");
     if (!privkey) throw new Error("private key required");
     const chain = resolveNet(netSel);
@@ -731,7 +754,11 @@ module.exports = (ctx) => {
     const store = loadStore(FILE);
     const b = bucketOf(store, chain.id);
     if (b.accounts.some((a) => a.publicKey === pub)) throw new Error(`this key is already in the keystore on ${chain.name}`);
-    ensureWalletPassword(store, password);
+    if (hasAnyAccounts(store) || store.passwordVerifier) {
+      verifyWalletPassword(store, password);
+    } else {
+      setInitialWalletPassword(store, password);
+    }
     const rec = ks.encrypt(priv.toString(), password);
 
     // Auto-resolve: look up accounts controlled by this public key
@@ -831,6 +858,10 @@ module.exports = (ctx) => {
       saveStore(FILE, store);
     }
 
+    // Password verified — keep it in memory so add/import can reuse it without
+    // asking the user to re-type. Cleared on lock()/relock()/auto-lock.
+    _vaultPassword = password;
+
     // Password verified — decrypt ALL keys from ALL networks
 
     // ── Auto-upgrade old-shape verifier (pre-v0.4.2, no N/r/p embedded) ──
@@ -890,11 +921,19 @@ module.exports = (ctx) => {
     const b = bucketOf(store, net.id);
 
     // Auth lifecycle (v4 wallet-level password):
-    //   needsSetup — no password set yet (fresh wallet or migrated v2 with no verifier)
-    //   locked     — password exists but no keys decrypted in memory
+    //   needsSetup — truly fresh wallet: no password AND no keys at all
+    //   locked     — password exists (or keys exist — password is implicit in
+    //                encrypted keys from a v2→v4 migration), but not unlocked
     //   unlocked   — keys are decrypted and ready to sign
+    //
+    // v0.5.1 regression fix: users with a v2 keystore (keys but no per-bucket
+    // passwordVerifier) were getting auth="needsSetup" → panel showed the
+    // "Create vault password" screen instead of the unlock screen. The unlock()
+    // handler already knows how to migrate (decrypt the first key → create the
+    // verifier), so we route these wallets to "locked" so the unlock gate shows.
+    const hasAccounts = hasAnyAccounts(store);
     let auth;
-    if (!store.passwordVerifier) {
+    if (!store.passwordVerifier && !hasAccounts) {
       auth = "needsSetup";
     } else if (unlocked.size > 0) {
       auth = "unlocked";
@@ -909,7 +948,8 @@ module.exports = (ctx) => {
       selected: b.selected || null,
       auth,
       unlocked: unlocked.size > 0, unlockedKeys: unlocked.size,
-      hasPassword: !!store.passwordVerifier,
+      hasPassword: !!(store.passwordVerifier || hasAccounts),
+      passwordInMemory: !!_vaultPassword,
       autoLockMs: getAutoLockMs(),
       brand: BRAND,
     };
@@ -1285,10 +1325,15 @@ module.exports = (ctx) => {
     let pub = p.pubkey;
     let newRec;
     if (!pub) {
+      // When unlocked, the frontend may send no password — use the in-memory one.
+      if (!p.password && _vaultPassword) p.password = _vaultPassword;
       if (!p.password) throw new Error("password required to encrypt the new account's key");
-      // Enforce one-password-per-wallet: the new key must be encrypted with the
-      // wallet's password (or set it if this is the first key).
-      ensureWalletPassword(store, p.password);
+      // Enforce one-password-per-wallet: verify existing password OR set initial
+      if (hasAnyAccounts(store) || store.passwordVerifier) {
+        verifyWalletPassword(store, p.password);
+      } else {
+        setInitialWalletPassword(store, p.password);
+      }
       const np = PrivateKey.generate("K1");
       pub = np.toPublic().toString();
       newRec = { label: name, account: name, permission: "active", publicKey: pub, ...ks.encrypt(np.toString(), p.password), createdAt: new Date().toISOString() };
@@ -1431,6 +1476,56 @@ module.exports = (ctx) => {
         }
         case "newaccount": return reply({ ok: true, result: await newAccount(a) });
 
+        // ── Tools (Anchor-style utilities) ─────────────────────────────
+        case "randomkey": {
+          const { PrivateKey } = await wharf();
+          const priv = PrivateKey.generate("K1");
+          const pub = priv.toPublic().toString();
+          return reply({ ok: true, publicKey: pub, privateKey: priv.toString(), type: "K1" });
+        }
+
+        case "table": {
+          const net = resolveNet(a.network);
+          const code = a.code || a.contract || parts[0];
+          const scope = a.scope || parts[1] || code;
+          const table = a.table || parts[2];
+          const limit = Math.min(parseInt(a.limit, 10) || 10, 100);
+          if (!code || !table) throw new Error("contract and table required (e.g. table:eosio:delband:myaccount)");
+          const body = { code, scope, table, json: true, limit, reverse: a.reverse === true || a.reverse === "true" };
+          if (a.lowerBound || a.lower) body.lower_bound = a.lowerBound || a.lower;
+          if (a.upperBound || a.upper) body.upper_bound = a.upperBound || a.upper;
+          if (a.indexPosition != null) body.index_position = parseInt(a.indexPosition, 10) || 1;
+          if (a.keyType) body.key_type = a.keyType;
+          const rows = await rpc(net, "get_table_rows", body);
+          return reply({ ok: true, network: net.id, code, scope, table, rows: rows.rows || [], more: rows.more || false });
+        }
+
+        case "pushaction": {
+          const net = resolveNet(a.network);
+          const store = loadStore(FILE);
+          const { rec, actor, permission } = resolveSigner(store, net, a.from || a.actor);
+          const contract = a.contract || a.code || parts[0];
+          const actionName = a.action || parts[1];
+          if (!contract || !actionName) throw new Error("contract and action required (e.g. pushaction:eosio:buyram:data)");
+          let data = {};
+          if (a.data && typeof a.data === "object") data = a.data;
+          else if (a._raw) { try { data = JSON.parse(a._raw); } catch {} }
+          const authorization = [{ actor, permission }];
+          // If unlocked, broadcast immediately like confirm(); else return intent
+          const priv = unlocked.get(rec.publicKey);
+          if (!priv) throw new Error("wallet is locked — unlock first");
+          const { Session, WalletPluginPrivateKey } = await wharf();
+          const session = new Session(
+            { chain: { id: net.chainId, url: net.rpc }, actor, permission, walletPlugin: new WalletPluginPrivateKey(priv) },
+            { fetch: closeFetch },
+          );
+          const result = await session.transact({ action: { account: contract, name: actionName, authorization, data } }, { broadcast: true });
+          const txId = String(result.response?.transaction_id || "");
+          armAutoLock();
+          notify();
+          return reply({ ok: true, broadcast: true, txId, explorer: (txId ? explorerTxUrl(net.id, txId).primary : null), contract, action: actionName, actor, network: net.name });
+        }
+
         // ── Config (auto-lock duration) ────────────────────────────────
         case "config": {
           if (a.autoLockMs !== undefined && a.autoLockMs !== null && a.autoLockMs !== "") {
@@ -1450,6 +1545,55 @@ module.exports = (ctx) => {
         // Encrypts the full store (byNet/accounts/selected + passwordVerifier)
         // with the wallet password or a separate export passphrase. Returns a
         // self-contained JSON blob safe to save as a file. NEVER plaintext.
+        // ── Change password (re-encrypt all keys with a new password) ──
+        case "changepassword": {
+          const oldPw = a.oldPassword || a.current || parts[0];
+          const newPw = a.newPassword || a.password || parts[1];
+          if (!oldPw) throw new Error("current password required");
+          if (!newPw) throw new Error("new password required");
+          if (newPw.length < 8) throw new Error("new password must be at least 8 characters");
+          if (oldPw === newPw) throw new Error("new password must be different from current");
+          const store = loadStore(FILE);
+          // Verify old password against wallet verifier (or decrypt check)
+          if (store.passwordVerifier) {
+            if (!ks.verifyPassword(oldPw, store.passwordVerifier)) {
+              throw new Error("current password is incorrect");
+            }
+          } else if (hasAnyAccounts(store)) {
+            let first;
+            for (const [, b] of Object.entries(store.byNet || {})) {
+              if (b && b.accounts && b.accounts.length > 0) { first = b.accounts[0]; break; }
+            }
+            try { ks.decrypt(first, oldPw); }
+            catch (e) { throw new Error("current password is incorrect"); }
+          } else {
+            throw new Error("wallet is empty — nothing to re-encrypt");
+          }
+          // Re-encrypt all keys with the new password
+          let changed = 0;
+          for (const [, b] of Object.entries(store.byNet || {})) {
+            if (!b || !b.accounts) continue;
+            for (const a of b.accounts) {
+              const priv = ks.decrypt(a, oldPw);
+              const rec = ks.encrypt(priv, newPw);
+              a.kdf = rec.kdf; a.cipher = rec.cipher;
+              changed++;
+            }
+          }
+          // Update the wallet password verifier
+          store.passwordVerifier = ks.createVerifier(newPw);
+          saveStore(FILE, store);
+          // Update in-memory unlocked keys too
+          for (const [pub, priv] of unlocked) {
+            const rec = ks.encrypt(priv, newPw);
+            unlocked.set(pub, ks.decrypt(rec, newPw));
+          }
+          // Update in-memory password so subsequent add/import uses the new password
+          _vaultPassword = newPw;
+          notify();
+          return reply({ ok: true, changed, passwordChanged: true });
+        }
+
         case "export": {
           const pw = a.password || a.passphrase || parts[0];
           if (!pw) throw new Error("password or export passphrase required");
@@ -1484,6 +1628,8 @@ module.exports = (ctx) => {
             byNet: imported.byNet,
           };
           saveStore(FILE, merged);
+          // Clear in-memory password — the restored wallet may use a different password
+          _vaultPassword = null;
           // Count total accounts imported
           let totalAccts = 0;
           for (const [, b] of Object.entries(imported.byNet || {})) {

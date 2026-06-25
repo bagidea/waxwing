@@ -345,6 +345,15 @@
          font-size:12.5px; color:var(--acc); font-weight:600; cursor:pointer; background:none; border:none; padding:8px; }
   .u-foot { display:flex; align-items:center; justify-content:center; gap:8px; font-size:11px; color:var(--dim); margin-top:18px; }
   .u-foot .ic { width:13px; height:13px; color:var(--ok); }
+  /* gate back/close button */
+  .gate-back { position:absolute; top:12px; right:12px; z-index:5; width:36px; height:36px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:11px; color:var(--mut); }
+  .gate-back:hover { border-color:rgba(120,170,255,.5); color:var(--fg); }
+  /* generate-key link under import form */
+  .gen-link { display:block; width:100%; text-align:center; margin-top:10px; background:none; border:none; cursor:pointer;
+    font-size:11.5px; color:var(--acc); font-weight:600; padding:6px; }
+  .gen-link:hover { text-decoration:underline; }
   /* network selector in create/import pane — same look as inputs */
   .gate-wrap select { width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:12px;
     background:rgba(255,255,255,.03); color:var(--fg); font-size:13px; font-family:inherit; margin-bottom:12px;
@@ -368,6 +377,12 @@
   .state-head .sh-ic svg { width:17px; height:17px; color:var(--acc); }
   .state-head.locked .sh-ic { background:rgba(255,207,107,.09); border-color:rgba(255,207,107,.38); }
   .state-head.locked .sh-ic svg { color:var(--warn); }
+/* ⛔ v0.5.4: compact locked-gate chrome so the password input + Unlock button always stay inside the 540×800 non-resizable window. On the locked screen the user already knows what waxwing is — tagline, badge, and self-note are first-run education; hide them and shrink the seal to free vertical space for the unlock form. */
+#gate.locked-mode .seal-big { width:60px; height:60px; padding:8px; margin:0 auto 4px; border-radius:20px; }
+#gate.locked-mode .vault-tag { display:none; }
+#gate.locked-mode .self-note { display:none; }
+	/* Ensure the gate-wrap bottom has breathing room so the unlock button is never flush against the window edge even when scrolled. */
+	#gate > .gate-wrap { padding-bottom:24px; }
   .state-head .sh-title { font-size:15.5px; font-weight:800; letter-spacing:-.01em; color:var(--fg); }
   .state-head .sh-body { font-size:12px; color:var(--mut); margin-top:4px; line-height:1.45; }
   .gs-count { display:inline-block; margin-top:11px; font-size:11.5px; font-weight:700; color:var(--acc);
@@ -503,6 +518,9 @@
       </div>
       <div class="iconbtn hide" id="settingsBtn" role="button" tabindex="0" title="Settings">
         <svg class="ic"><use href="#g-gear"/></svg>
+      </div>
+      <div class="iconbtn hide" id="toolsBtn" role="button" tabindex="0" title="Tools">
+        <svg class="ic"><use href="#g-wallet"/></svg>
       </div>
     </div>
   </header>
@@ -680,10 +698,11 @@
       <div class="gs-chips hide" id="gsChips"></div>
     </div>
 
+    <!-- back / close button on the gate (visible only when adding a key, not for unlock) -->
+    <button id="gateBack" class="gate-back hide" title="Back"><svg class="ic"><use href="#g-x"/></svg></button>
     <div class="tabs">
       <button id="tabUnlock" class="active"><span id="tabUnlockLbl">Unlock</span></button>
-      <button id="tabCreate"><span id="tabCreateLbl">New key</span><span class="seed hide" id="seedTag">start here</span></button>
-      <button id="tabImport"><span id="tabImportLbl">Import</span></button>
+      <button id="tabImport" class="hide"><span id="tabImportLbl">Import</span></button>
     </div>
     <div class="tab-hint" id="tabHint"></div>
 
@@ -725,9 +744,11 @@
       <select id="imNetwork"></select>
       <label id="lblImPass">Password (encrypts this key)</label>
       <input id="imPass" type="password" placeholder="password" />
+      <div class="hint" id="imPassHint"></div>
       <label id="lblImKey">Private key (PVT_K1_… or WIF 5…)</label>
       <input id="imKey" placeholder="private key" autocomplete="off" spellcheck="false" />
       <button class="btn" id="imBtn" style="margin-top:12px">Import key</button>
+      <button class="gen-link" id="genLink">or generate a new key instead</button>
       <div class="gate-explain" id="explainImport">On WAX your <b>account stays on the blockchain</b> — importing moves nothing. The wallet just keeps your key encrypted on this device and links it to your account name + permission (<b>setaccount</b>), so it knows who you are on-chain.</div>
     </div>
 
@@ -774,6 +795,7 @@ const STATE = {
   autoLockMs: 600000,    // Settings → auto-lock timeout (ms); engine default 10 min
   info: null,            // last account() result
   balances: [],          // ["1.0 WAX", ...]
+	statusLoaded: false,   // ⛔ v0.5.3: true ONLY after the FIRST successful cmd("status") — prevents cold-boot false-setup footgun
 };
 
 async function cmd(c, args) {
@@ -855,8 +877,20 @@ async function pingNet() {
 
 /* ── status (accounts + lock) ── */
 async function refreshStatus() {
-  const r = await cmd("status");
-  if (!r.ok) return;
+  let r;
+  // ⛔ v0.5.3: retry with backoff (5 attempts, 300/600/900/1200/1500ms) — never silently fail
+  // and leave vaultState() to default to "setup". Status fetch MUST succeed before any gate
+  // decision, otherwise the panel shows the create-vault screen on a wallet that already has keys.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    r = await cmd("status");
+    if (r.ok) break;
+    if (attempt < 4) await new Promise(res => setTimeout(res, 300 + attempt * 300));
+  }
+  if (!r.ok) {
+    // All retries failed — keep the loading state; the gate stays as loading (no setup fallback).
+    return;
+  }
+  STATE.statusLoaded = true;   // v0.5.3: we now know the REAL wallet state — gate can decide safely.
   const st = r.status;
   STATE.unlocked = !!st.unlocked;
   STATE.accounts = st.accounts || [];
@@ -878,13 +912,12 @@ async function refreshStatus() {
   }
   syncPasswordLabels();
   $("settingsBtn").classList.toggle("hide", !STATE.unlocked);   // Settings only once unlocked
+  $("toolsBtn").classList.toggle("hide", !STATE.unlocked);       // Tools only once unlocked
   // lock button
   const lb = $("lockBtn");
   lb.className = "iconbtn " + (STATE.unlocked ? "unlocked" : "locked");
   $("lockIco").setAttribute("href", STATE.unlocked ? "#g-unlock" : "#g-lock");
   lb.title = STATE.unlocked ? `Unlocked (${st.unlockedKeys}) — click to lock` : "Locked — click to unlock";
-  // empty keystore → spotlight "New key" so first-timers don't poke Import looking for a key they don't have
-  $("seedTag").classList.toggle("hide", STATE.accounts.length > 0);
   // EXACTLY ONE gate screen, chosen by gateView() (setup | locked | bind | addkey | unlocked).
   renderGateMode();
   // gate is hidden ONLY when truly unlocked with nothing left to link.
@@ -1328,7 +1361,7 @@ async function openAccountSheet() {
     <button class="btn ghost" id="addAcct" style="margin-top:12px"><svg class="ic"><use href="#g-plus"/></svg> Add / import a key</button>
   `);
   $("watchGo").onclick = () => { const n = $("watchName").value.trim(); if (n) { closeSheet(); setActive(n); } };
-  $("addAcct").onclick = () => { closeSheet(); GATE_OVERRIDE = "addkey"; $("gate").classList.remove("hide"); renderGateMode(); $("tabCreate").click(); };
+  $("addAcct").onclick = () => { closeSheet(); GATE_OVERRIDE = "addkey"; $("gate").classList.remove("hide"); renderGateMode(); };
 
   // SCHEMA §2/§5 — `overview`: one call, every stored account with its OWN balance +
   // CPU/NET/RAM (read-only, works while locked). Fallback to public `status` info.
@@ -1683,85 +1716,87 @@ const SETUP_I18N = {
     suWarn:"This password unlocks your vault <b>every time</b>. It encrypts your keys on this device — there's no reset and no recovery. If you forget it, your keys are gone for good.",
     suBtn:"Create vault", suImportLink:"Already have a key? Import it instead",
     suMatchOk:"Passwords match", suMatchNo:"Passwords don't match yet", suConfirmHint:"Type your password again to confirm", suTooShort:"Use at least 8 characters.",
-    addTitle:"Add another key", addBody:"Generate a new key or import an existing one into this vault." },
+    addTitle:"Add another key", addBody:"Import a private key into this vault. No password needed — your wallet is already unlocked.",
+    lblConfirmPass:"Confirm password", phConfirmPass:"re-enter to confirm", unlockedPassHint:"Already unlocked — enter your password to encrypt the new key." },
   zh: { setupTitle:"创建保险箱密码", setupBody:"这是你在本设备上解锁钱包时使用的密码。",
     lblSuPass:"新保险箱密码", phSuPass:"设置一个强密码", lblSuConfirm:"确认密码", phSuConfirm:"再次输入",
     suWarn:"此密码<b>每次</b>都用于解锁保险箱。它在本设备上加密你的密钥 — 无法重置、无法找回。一旦忘记，密钥将永久丢失。",
     suBtn:"创建保险箱", suImportLink:"已有密钥？改为导入",
     suMatchOk:"密码一致", suMatchNo:"两次密码尚不一致", suConfirmHint:"再次输入密码以确认", suTooShort:"至少使用 8 个字符。",
-    addTitle:"添加另一个密钥", addBody:"生成新密钥或将已有密钥导入此保险箱。" },
+    addTitle:"添加另一个密钥", addBody:"将私钥导入此保险箱。无需密码 — 您的钱包已解锁。" },
   es: { setupTitle:"Crea la contraseña de tu caja fuerte", setupBody:"Es la contraseña que usarás para desbloquear la cartera en este dispositivo.",
     lblSuPass:"Nueva contraseña", phSuPass:"elige una contraseña fuerte", lblSuConfirm:"Confirma la contraseña", phSuConfirm:"escríbela otra vez",
     suWarn:"Esta contraseña desbloquea tu caja fuerte <b>cada vez</b>. Cifra tus claves en este dispositivo: no hay restablecimiento ni recuperación. Si la olvidas, tus claves se pierden para siempre.",
     suBtn:"Crear caja fuerte", suImportLink:"¿Ya tienes una clave? Impórtala",
     suMatchOk:"Las contraseñas coinciden", suMatchNo:"Aún no coinciden", suConfirmHint:"Escribe de nuevo tu contraseña para confirmar", suTooShort:"Usa al menos 8 caracteres.",
-    addTitle:"Añadir otra clave", addBody:"Genera una clave nueva o importa una existente a esta caja fuerte." },
+    addTitle:"Añadir otra clave", addBody:"Importa una clave privada a esta caja fuerte. No se necesita contraseña: tu cartera ya está desbloqueada." },
   hi: { setupTitle:"अपनी तिजोरी का पासवर्ड बनाएँ", setupBody:"यही पासवर्ड आप इस डिवाइस पर वॉलेट अनलॉक करने के लिए उपयोग करेंगे।",
     lblSuPass:"नया तिजोरी पासवर्ड", phSuPass:"एक मज़बूत पासवर्ड चुनें", lblSuConfirm:"पासवर्ड की पुष्टि करें", phSuConfirm:"दोबारा टाइप करें",
     suWarn:"यह पासवर्ड <b>हर बार</b> आपकी तिजोरी अनलॉक करता है। यह आपकी कुंजियों को इस डिवाइस पर एन्क्रिप्ट करता है — न रीसेट, न रिकवरी। भूल गए तो कुंजियाँ हमेशा के लिए चली जाएँगी।",
     suBtn:"तिजोरी बनाएँ", suImportLink:"पहले से कुंजी है? इसके बजाय आयात करें",
     suMatchOk:"पासवर्ड मेल खाते हैं", suMatchNo:"अभी पासवर्ड मेल नहीं खाते", suConfirmHint:"पुष्टि के लिए पासवर्ड दोबारा टाइप करें", suTooShort:"कम से कम 8 अक्षर उपयोग करें।",
-    addTitle:"एक और कुंजी जोड़ें", addBody:"नई कुंजी बनाएँ या मौजूदा कुंजी इस तिजोरी में आयात करें।" },
+    addTitle:"एक और कुंजी जोड़ें", addBody:"इस तिजोरी में एक निजी कुंजी आयात करें। पासवर्ड की ज़रूरत नहीं — आपकी वॉलेट पहले से अनलॉक है।" },
   ar: { setupTitle:"أنشئ كلمة مرور خزنتك", setupBody:"هذه كلمة المرور التي ستستخدمها لفتح المحفظة على هذا الجهاز.",
     lblSuPass:"كلمة مرور الخزنة الجديدة", phSuPass:"اختر كلمة مرور قوية", lblSuConfirm:"تأكيد كلمة المرور", phSuConfirm:"اكتبها مرة أخرى",
     suWarn:"تفتح كلمة المرور هذه خزنتك <b>في كل مرة</b>. تشفّر مفاتيحك على هذا الجهاز — لا إعادة تعيين ولا استرداد. إن نسيتها، تضيع مفاتيحك نهائيًا.",
     suBtn:"إنشاء الخزنة", suImportLink:"لديك مفتاح بالفعل؟ استورده بدلاً من ذلك",
     suMatchOk:"كلمتا المرور متطابقتان", suMatchNo:"غير متطابقتين بعد", suConfirmHint:"اكتب كلمة المرور مرة أخرى للتأكيد", suTooShort:"استخدم 8 أحرف على الأقل.",
-    addTitle:"أضف مفتاحًا آخر", addBody:"أنشئ مفتاحًا جديدًا أو استورد مفتاحًا موجودًا إلى هذه الخزنة." },
+    addTitle:"أضف مفتاحًا آخر", addBody:"استورد مفتاحًا خاصًا إلى هذه الخزنة. لا حاجة لكلمة مرور — محفظتك مفتوحة بالفعل." },
   pt: { setupTitle:"Crie a senha do seu cofre", setupBody:"É a senha que você usará para desbloquear a carteira neste dispositivo.",
     lblSuPass:"Nova senha do cofre", phSuPass:"escolha uma senha forte", lblSuConfirm:"Confirme a senha", phSuConfirm:"digite novamente",
     suWarn:"Esta senha desbloqueia seu cofre <b>todas as vezes</b>. Ela criptografa suas chaves neste dispositivo — não há redefinição nem recuperação. Se esquecer, suas chaves se perdem para sempre.",
     suBtn:"Criar cofre", suImportLink:"Já tem uma chave? Importe-a",
     suMatchOk:"As senhas coincidem", suMatchNo:"Ainda não coincidem", suConfirmHint:"Digite a senha novamente para confirmar", suTooShort:"Use pelo menos 8 caracteres.",
-    addTitle:"Adicionar outra chave", addBody:"Gere uma nova chave ou importe uma existente para este cofre." },
+    addTitle:"Adicionar outra chave", addBody:"Importe uma chave privada para este cofre. Não é necessária senha — sua carteira já está desbloqueada." },
   ru: { setupTitle:"Создайте пароль сейфа", setupBody:"Это пароль, которым вы будете разблокировать кошелёк на этом устройстве.",
     lblSuPass:"Новый пароль сейфа", phSuPass:"придумайте надёжный пароль", lblSuConfirm:"Подтвердите пароль", phSuConfirm:"введите ещё раз",
     suWarn:"Этот пароль разблокирует ваш сейф <b>каждый раз</b>. Он шифрует ваши ключи на этом устройстве — без сброса и восстановления. Если забудете — ключи потеряны навсегда.",
     suBtn:"Создать сейф", suImportLink:"Уже есть ключ? Импортируйте его",
     suMatchOk:"Пароли совпадают", suMatchNo:"Пароли пока не совпадают", suConfirmHint:"Введите пароль ещё раз для подтверждения", suTooShort:"Используйте не менее 8 символов.",
-    addTitle:"Добавить ещё ключ", addBody:"Создайте новый ключ или импортируйте существующий в этот сейф." },
+    addTitle:"Добавить ещё ключ", addBody:"Импортируйте приватный ключ в этот сейф. Пароль не нужен — кошелёк уже разблокирован." },
   ja: { setupTitle:"金庫のパスワードを作成", setupBody:"この端末でウォレットのロックを解除する際に使うパスワードです。",
     lblSuPass:"新しい金庫パスワード", phSuPass:"強力なパスワードを選択", lblSuConfirm:"パスワードの確認", phSuConfirm:"もう一度入力",
     suWarn:"このパスワードは<b>毎回</b>金庫のロックを解除します。鍵をこの端末で暗号化します — リセットも復元もできません。忘れると鍵は永久に失われます。",
     suBtn:"金庫を作成", suImportLink:"すでに鍵をお持ち？インポートする",
     suMatchOk:"パスワードが一致", suMatchNo:"まだ一致していません", suConfirmHint:"確認のためもう一度入力してください", suTooShort:"8文字以上にしてください。",
-    addTitle:"鍵を追加", addBody:"新しい鍵を生成するか、既存の鍵をこの金庫にインポートします。" },
+    addTitle:"鍵を追加", addBody:"秘密鍵をこの金庫にインポートします。パスワードは不要です — ウォレットはすでにロック解除されています。" },
   de: { setupTitle:"Tresor-Passwort erstellen", setupBody:"Mit diesem Passwort entsperrst du die Wallet auf diesem Gerät.",
     lblSuPass:"Neues Tresor-Passwort", phSuPass:"wähle ein starkes Passwort", lblSuConfirm:"Passwort bestätigen", phSuConfirm:"erneut eingeben",
     suWarn:"Dieses Passwort entsperrt deinen Tresor <b>jedes Mal</b>. Es verschlüsselt deine Schlüssel auf diesem Gerät — kein Zurücksetzen, keine Wiederherstellung. Vergisst du es, sind deine Schlüssel für immer weg.",
     suBtn:"Tresor erstellen", suImportLink:"Schon einen Schlüssel? Stattdessen importieren",
     suMatchOk:"Passwörter stimmen überein", suMatchNo:"Passwörter stimmen noch nicht überein", suConfirmHint:"Gib das Passwort zur Bestätigung erneut ein", suTooShort:"Mindestens 8 Zeichen verwenden.",
-    addTitle:"Weiteren Schlüssel hinzufügen", addBody:"Erzeuge einen neuen Schlüssel oder importiere einen vorhandenen in diesen Tresor." },
+    addTitle:"Weiteren Schlüssel hinzufügen", addBody:"Importiere einen privaten Schlüssel in diesen Tresor. Kein Passwort nötig — deine Wallet ist bereits entsperrt." },
   fr: { setupTitle:"Créez le mot de passe de votre coffre", setupBody:"C'est le mot de passe que vous utiliserez pour déverrouiller le portefeuille sur cet appareil.",
     lblSuPass:"Nouveau mot de passe du coffre", phSuPass:"choisissez un mot de passe fort", lblSuConfirm:"Confirmez le mot de passe", phSuConfirm:"saisissez-le à nouveau",
     suWarn:"Ce mot de passe déverrouille votre coffre <b>à chaque fois</b>. Il chiffre vos clés sur cet appareil — aucune réinitialisation ni récupération. Si vous l'oubliez, vos clés sont perdues définitivement.",
     suBtn:"Créer le coffre", suImportLink:"Vous avez déjà une clé ? Importez-la",
     suMatchOk:"Les mots de passe correspondent", suMatchNo:"Ils ne correspondent pas encore", suConfirmHint:"Saisissez à nouveau votre mot de passe pour confirmer", suTooShort:"Utilisez au moins 8 caractères.",
-    addTitle:"Ajouter une autre clé", addBody:"Générez une nouvelle clé ou importez-en une existante dans ce coffre." },
+    addTitle:"Ajouter une autre clé", addBody:"Importez une clé privée dans ce coffre. Aucun mot de passe requis — votre portefeuille est déjà déverrouillé." },
   ko: { setupTitle:"금고 비밀번호 만들기", setupBody:"이 기기에서 지갑을 잠금 해제할 때 사용할 비밀번호입니다.",
     lblSuPass:"새 금고 비밀번호", phSuPass:"강력한 비밀번호 선택", lblSuConfirm:"비밀번호 확인", phSuConfirm:"다시 입력",
     suWarn:"이 비밀번호는 <b>매번</b> 금고를 잠금 해제합니다. 키를 이 기기에서 암호화합니다 — 재설정도 복구도 없습니다. 잊어버리면 키는 영영 사라집니다.",
     suBtn:"금고 만들기", suImportLink:"이미 키가 있나요? 대신 가져오기",
     suMatchOk:"비밀번호가 일치합니다", suMatchNo:"아직 일치하지 않습니다", suConfirmHint:"확인을 위해 비밀번호를 다시 입력하세요", suTooShort:"8자 이상 사용하세요.",
-    addTitle:"키 추가", addBody:"새 키를 생성하거나 기존 키를 이 금고로 가져오세요." },
+    addTitle:"키 추가", addBody:"이 금고로 개인 키를 가져옵니다. 비밀번호가 필요 없습니다 — 지갑이 이미 잠금 해제되어 있습니다." },
   id: { setupTitle:"Buat kata sandi brankas", setupBody:"Ini kata sandi yang Anda pakai untuk membuka dompet di perangkat ini.",
     lblSuPass:"Kata sandi brankas baru", phSuPass:"pilih kata sandi yang kuat", lblSuConfirm:"Konfirmasi kata sandi", phSuConfirm:"ketik lagi",
     suWarn:"Kata sandi ini membuka brankas Anda <b>setiap kali</b>. Ia mengenkripsi kunci Anda di perangkat ini — tidak ada reset, tidak ada pemulihan. Jika lupa, kunci Anda hilang selamanya.",
     suBtn:"Buat brankas", suImportLink:"Sudah punya kunci? Impor saja",
     suMatchOk:"Kata sandi cocok", suMatchNo:"Belum cocok", suConfirmHint:"Ketik ulang kata sandi untuk konfirmasi", suTooShort:"Gunakan minimal 8 karakter.",
-    addTitle:"Tambah kunci lain", addBody:"Buat kunci baru atau impor yang sudah ada ke brankas ini." },
+    addTitle:"Tambah kunci lain", addBody:"Impor kunci privat ke brankas ini. Tidak perlu kata sandi — dompet Anda sudah terbuka." },
   vi: { setupTitle:"Tạo mật khẩu két", setupBody:"Đây là mật khẩu bạn dùng để mở khóa ví trên thiết bị này.",
     lblSuPass:"Mật khẩu két mới", phSuPass:"chọn mật khẩu mạnh", lblSuConfirm:"Xác nhận mật khẩu", phSuConfirm:"nhập lại",
     suWarn:"Mật khẩu này mở khóa két của bạn <b>mỗi lần</b>. Nó mã hóa khóa của bạn trên thiết bị này — không đặt lại, không khôi phục. Nếu quên, khóa của bạn mất vĩnh viễn.",
     suBtn:"Tạo két", suImportLink:"Đã có khóa? Nhập khóa thay thế",
     suMatchOk:"Mật khẩu khớp", suMatchNo:"Chưa khớp", suConfirmHint:"Nhập lại mật khẩu để xác nhận", suTooShort:"Dùng ít nhất 8 ký tự.",
-    addTitle:"Thêm khóa khác", addBody:"Tạo khóa mới hoặc nhập khóa hiện có vào két này." },
+    addTitle:"Thêm khóa khác", addBody:"Nhập khóa riêng tư vào két này. Không cần mật khẩu — ví của bạn đã được mở khóa." },
   th: { setupTitle:"สร้างรหัสผ่านตู้เซฟ", setupBody:"นี่คือรหัสที่คุณจะใช้ปลดล็อกกระเป๋าในเครื่องนี้ทุกครั้ง",
     lblSuPass:"รหัสผ่านตู้เซฟใหม่", phSuPass:"ตั้งรหัสที่คาดเดายาก", lblSuConfirm:"ยืนยันรหัสผ่าน", phSuConfirm:"พิมพ์อีกครั้ง",
     suWarn:"รหัสนี้ใช้ปลดล็อกตู้เซฟ<b>ทุกครั้ง</b> มันเข้ารหัสกุญแจของคุณไว้ในเครื่อง — ไม่มีรีเซ็ต ไม่มีการกู้คืน ถ้าลืม กุญแจจะหายถาวร",
     suBtn:"สร้างตู้เซฟ", suImportLink:"มีกุญแจอยู่แล้ว? นำเข้าแทน",
     suMatchOk:"รหัสตรงกันแล้ว", suMatchNo:"รหัสยังไม่ตรงกัน", suConfirmHint:"พิมพ์รหัสอีกครั้งเพื่อยืนยัน", suTooShort:"ใช้อย่างน้อย 8 ตัวอักษร",
-    addTitle:"เพิ่มกุญแจอีกดอก", addBody:"สร้างกุญแจใหม่ หรือนำเข้ากุญแจที่มีอยู่เข้าตู้เซฟนี้" },
+    addTitle:"เพิ่มกุญแจอีกดอก", addBody:"นำเข้ากุญแจส่วนตัวเข้าตู้เซฟนี้ ไม่ต้องใส่รหัสผ่าน — กระเป๋าของคุณปลดล็อกอยู่แล้ว",
+    lblConfirmPass:"ยืนยันรหัสผ่าน", phConfirmPass:"ใส่รหัสผ่านอีกครั้ง", unlockedPassHint:"ปลดล็อกแล้ว — ใส่รหัสผ่านเพื่อเข้ารหัสกุญแจใหม่" },
 };
 
 /* ── (C) Settings sheet copy, 14 office languages. <b> markup allowed only in `backupWarn`. ── */
@@ -1995,7 +2030,7 @@ function applyGateLang() {
   $("selfNote").innerHTML = t.selfNote;
   $("explainImport").innerHTML = t.explainImport;
   $("suWarnTxt").innerHTML = t.suWarn;
-  const txt = { vaultTag:"vaultTag", tabUnlockLbl:"tabUnlock", tabCreateLbl:"tabCreate", seedTag:"seed", tabImportLbl:"tabImport",
+  const txt = { vaultTag:"vaultTag", tabUnlockLbl:"tabUnlock", tabCreateLbl:"tabCreate", tabImportLbl:"tabImport",
     lblUlPass:"lblUlPass", ulBtn:"btnUnlock", bioTxt:"bioTxt",
     lblCnNet:"lblCnNet", lblCnPass:"lblCnPass", cnBtn:"btnCreate", hintCreate:"hintCreateDetail",
     lblImNet:"lblImNet", lblImPass:"lblImPass", lblImKey:"lblImKey", imBtn:"btnImport", footTxt:"foot",
@@ -2041,8 +2076,22 @@ function needsLink() {
 
 // Legacy derivation, kept as a fallback for when status.auth is ever absent.
 function vaultState() {
+  // ⛔ v0.5.3: never decide the gate before the FIRST status fetch succeeds.
+  // If refreshStatus() hasn't loaded yet (or all retries failed), the gate
+  // stays at "loading" so it never falsely shows the create-vault screen on
+  // a wallet that already has keys.
+  if (!STATE.statusLoaded) return "loading";
   if (STATE.unlocked || STATE.auth === "unlocked") return "unlocked";
-  if (STATE.auth === "needsSetup") return "setup";
+  // ⛔ FOOTGUN FIX v0.5.2: never show setup when accounts exist, even if the
+  // backend mistakenly reports needsSetup. This is defense-in-depth against
+  // silent lockout — if a bug ever makes status.auth return "needsSetup" on
+  // a wallet with keys, the panel falls back to "locked" so the user sees the
+  // unlock screen instead of the create-vault screen. Only a truly empty wallet
+  // (no accounts, no hasPassword) ever shows the setup screen.
+  if (STATE.auth === "needsSetup") {
+    if (STATE.accounts && STATE.accounts.length > 0) return "locked";
+    return "setup";
+  }
   if (STATE.auth === "locked")     return "locked";
   if (STATE.hasPassword || (STATE.accounts && STATE.accounts.length)) return "locked";
   return "setup";   // empty vault, no password → first run
@@ -2057,6 +2106,7 @@ function vaultState() {
 function gateView() {
   if (PENDING) return "bind";                  // mid create/import/link sub-flow
   const base = vaultState();
+  if (base === "loading") return "loading";    // ⛔ v0.5.3: never decide before status arrives
   if (base === "setup")  return "setup";
   if (base === "locked") return "locked";      // LOCKED ⇒ unlock only — the link step never shows here
   if (GATE_OVERRIDE === "addkey") return "addkey";
@@ -2069,29 +2119,44 @@ function renderGateMode() {
   const head = $("gateState");
   if (!head) return;
   const view = gateView();
+  // ⛔ v0.5.4: compact locked chrome so the password input + Unlock button always stay visible
+  // inside the 540×800 non-resizable window. Hides tagline/badge/self-note (first-run education)
+  // and shrinks the seal on the locked screen.
+  $("gate").classList.toggle("locked-mode", view === "locked");
   const tabsRow = document.querySelector(".tabs");
   const selfNote = document.querySelector(".gate-wrap > .self-note");
   // single-screen guarantee: hide EVERY pane (incl. the bind pane) first, then show exactly one
   for (const p of ["Setup","Unlock","Create","Import","Bind"]) { const el = $("pane"+p); if (el) el.classList.add("hide"); }
   $("gsChips").classList.add("hide"); $("gsChips").innerHTML = ""; $("gsCount").classList.add("hide");
   if (selfNote) selfNote.classList.remove("hide");
+  // Back button visible only when adding a key (not on lock/unlock screens)
+  $("gateBack").classList.toggle("hide", view !== "addkey" && view !== "bind");
 
-  if (view === "setup") {
+  if (view === "loading") {
+    // ⛔ v0.5.3: status hasn't loaded yet (or all retries failed) — show a neutral
+    // loading state with the lock icon. NEVER fall through to setup on an unknown wallet.
+    head.classList.add("locked"); head.classList.remove("hide");
+    $("gsIco").setAttribute("href", "#g-clock");
+    $("gsTitle").textContent = t.lockedTitle; $("gsBody").textContent = "";
+    tabsRow.classList.add("hide"); $("tabHint").textContent = "";
+  } else if (view === "setup") {
     head.classList.remove("locked"); head.classList.remove("hide");
     $("gsIco").setAttribute("href", "#g-shield");
     $("gsTitle").textContent = t.setupTitle; $("gsBody").textContent = t.setupBody;
     tabsRow.classList.add("hide"); $("tabHint").textContent = "";
     $("paneSetup").classList.remove("hide");
     refreshSetupMatch();
-  } else if (view === "addkey") {                 // unlocked → adding another key
+  } else if (view === "addkey") {                 // unlocked → adding another key (Import only)
     head.classList.remove("locked"); head.classList.remove("hide");
     $("gsIco").setAttribute("href", "#g-plus");
     $("gsTitle").textContent = t.addTitle; $("gsBody").textContent = t.addBody;
-    tabsRow.classList.remove("hide");
-    $("tabUnlock").classList.add("hide");         // already unlocked — nothing to unlock
-    $("tabCreate").classList.remove("hide"); $("tabImport").classList.remove("hide");
-    if ($("tabUnlock").classList.contains("active")) showTab("Create");
-    else showTab($("tabImport").classList.contains("active") ? "Import" : "Create");
+    // Import is the only action here — no tab row (a single "Import" tab was a redundant
+    // ghost button stacked above the real "Import key" submit). The "or generate a new key
+    // instead" link inside the pane still covers the create path.
+    tabsRow.classList.add("hide"); $("tabHint").textContent = "";
+    $("paneImport").classList.remove("hide");
+    // When unlocked the password field is hidden (engine reuses the in-memory password).
+    syncPasswordLabels();
   } else if (view === "bind") {                   // unlocked → link the unbound key (or skip into the wallet)
     paintBind();
   } else if (view === "unlocked") {
@@ -2146,10 +2211,27 @@ function paintBind() {
 function syncPasswordLabels() {
   const t = GATE_T || GATE_I18N.en;
   const has = STATE.hasPassword;
-  if ($("lblCnPass")) $("lblCnPass").textContent = has ? t.lblUlPass : t.lblCnPass;
-  if ($("lblImPass")) $("lblImPass").textContent = has ? t.lblUlPass : t.lblImPass;
-  if ($("cnPass")) $("cnPass").placeholder = has ? t.phPass : t.phCnPass;
-  if ($("imPass")) $("imPass").placeholder = has ? t.phPass : t.phImPass;
+  const unlocked = STATE.unlocked;
+  // When UNLOCKED: hide the password field entirely — backend uses in-memory password.
+  // When LOCKED with existing wallet: show wallet password field (reuse unlock labels).
+  // When SETUP (no wallet yet): show "new password" labels.
+  if (unlocked) {
+    // Hide password inputs + labels — no need to re-enter
+    if ($("lblCnPass")) $("lblCnPass").classList.add("hide");
+    if ($("cnPass")) { $("cnPass").classList.add("hide"); $("cnPass").value = ""; }
+    if ($("lblImPass")) $("lblImPass").classList.add("hide");
+    if ($("imPass")) { $("imPass").classList.add("hide"); $("imPass").value = ""; }
+    const hintEl = $("imPassHint");
+    if (hintEl) hintEl.textContent = "";
+  } else {
+    // Show password fields (locked or setup states)
+    if ($("lblCnPass")) { $("lblCnPass").classList.remove("hide"); $("lblCnPass").textContent = has ? t.lblUlPass : t.lblCnPass; }
+    if ($("cnPass")) { $("cnPass").classList.remove("hide"); $("cnPass").placeholder = has ? t.phPass : t.phCnPass; }
+    if ($("lblImPass")) { $("lblImPass").classList.remove("hide"); $("lblImPass").textContent = has ? t.lblUlPass : t.lblImPass; }
+    if ($("imPass")) { $("imPass").classList.remove("hide"); $("imPass").placeholder = has ? t.phPass : t.phImPass; }
+    const hintEl = $("imPassHint");
+    if (hintEl) hintEl.textContent = "";
+  }
 }
 
 /* ── show/hide password — one clear toggle on every password field (CEO: the native eye was too faint) ── */
@@ -2201,17 +2283,22 @@ function populateNetSelect(selId) {
   ).join("");
 }
 function showTab(which) {
-  for (const t of ["Unlock","Create","Import"]) { $("tab"+t).classList.toggle("active", t===which); $("pane"+t).classList.toggle("hide", t!==which); }
-  if (which === "Create") populateNetSelect("cnNetwork");
+  for (const t of ["Unlock","Import"]) { $("tab"+t).classList.toggle("active", t===which); $("pane"+t).classList.toggle("hide", t!==which); }
   if (which === "Import") populateNetSelect("imNetwork");
   $("tabHint").textContent = GATE_T["hint"+which] || "";
 }
 $("tabUnlock").onclick = () => showTab("Unlock");
-$("tabCreate").onclick = () => showTab("Create");
-$("tabImport").onclick = () => showTab("Import");
+$("tabImport").onclick = () => { showTab("Import"); syncPasswordLabels(); };
 $("lockBtn").onclick = async () => {
   if (STATE.unlocked) { LINK_DISMISSED = false; await cmd("lock"); flash($("gateMsg"),"Wallet locked.",true); await refreshStatus(); $("gate").classList.remove("hide"); }
   else $("gate").classList.remove("hide");
+};
+// Back button on gate — return to main screen (close gate)
+$("gateBack").onclick = () => {
+  GATE_OVERRIDE = null; PENDING = null;
+  $("gate").classList.add("hide");
+  $("gateMsg").classList.add("hide");
+  showScreen("home");
 };
 $("ulBtn").onclick = async () => {
   const r = await cmd("unlock", { password:$("ulPass").value });
@@ -2224,9 +2311,9 @@ $("ulBtn").onclick = async () => {
 };
 $("ulPass").addEventListener("keydown", e => { if (e.key==="Enter") $("ulBtn").click(); });
 $("cnBtn").onclick = async () => {
-  const pass = $("cnPass").value, net = ($("cnNetwork").value || STATE.chain.id);
-  if (!pass) { flash($("gateMsg"), STATE.hasPassword ? "Enter your wallet password." : "Choose a password first.", false); return; }
-  const r = await cmd("create", { password:pass, network:net });
+  const pass = STATE.unlocked ? "" : $("cnPass").value, net = ($("cnNetwork").value || STATE.chain.id);
+  if (!STATE.unlocked && !pass) { flash($("gateMsg"), STATE.hasPassword ? "Enter your wallet password." : "Choose a password first.", false); return; }
+  const r = STATE.unlocked ? await cmd("create", { network:net }) : await cmd("create", { password:pass, network:net });
   if (!r.ok) { if (r.crossScan) showCrossScanMsg(r.crossScan); else flash($("gateMsg"), escapeHtml(r.msg||"failed"), false); return; }
   // Switch to the chosen network so the key lands in the right bucket + core symbol matches
   if (net !== STATE.chain.id) { const sn = await cmd("setnetwork", { network:net }); if (sn.ok && sn.chain) applyChain(sn.chain); }
@@ -2240,10 +2327,10 @@ $("cnBtn").onclick = async () => {
   else enterBindStep({ publicKey:r.publicKey, password:null, mode:"create", network:net, zeroAccounts:true });            // 0 accounts anywhere → show clear message
 };
 $("imBtn").onclick = async () => {
-  const pass = $("imPass").value, key = $("imKey").value.trim(), net = ($("imNetwork").value || STATE.chain.id);
-  if (!pass) { flash($("gateMsg"), STATE.hasPassword ? "Enter your wallet password." : "Enter a password to encrypt this key.", false); return; }
+  const pass = STATE.unlocked ? "" : $("imPass").value, key = $("imKey").value.trim(), net = ($("imNetwork").value || STATE.chain.id);
+  if (!STATE.unlocked && !pass) { flash($("gateMsg"), STATE.hasPassword ? "Enter your wallet password." : "Enter a password to encrypt this key.", false); return; }
   if (!key)  { flash($("gateMsg"), "Paste the private key to import.", false); return; }
-  const r = await cmd("import", { password:pass, privkey:key, network:net });
+  const r = STATE.unlocked ? await cmd("import", { privkey:key, network:net }) : await cmd("import", { password:pass, privkey:key, network:net });
   if (!r.ok) { if (r.crossScan) showCrossScanMsg(r.crossScan, null); else flash($("gateMsg"), escapeHtml(r.msg||"failed"), false); return; }
   $("imKey").value="";
   // Switch to the chosen network so the key lands in the right bucket + core symbol matches
@@ -2256,6 +2343,16 @@ $("imBtn").onclick = async () => {
   }
   else if (r.foundAccounts && r.foundAccounts.length > 0) { enterBindStep({ publicKey:r.publicKey, password:null, mode:"import", network:net, foundAccounts:r.foundAccounts }); }
   else enterBindStep({ publicKey:r.publicKey, password:null, mode:"import", network:net, zeroAccounts:true });            // 0 accounts anywhere → show clear message
+};
+// "or generate a new key instead" — switch to create-new-key pane
+$("genLink").onclick = () => {
+  $("paneImport").classList.add("hide");
+  $("paneCreate").classList.remove("hide");
+  populateNetSelect("cnNetwork");
+  syncPasswordLabels();
+  // Focus the password field only when visible; when unlocked focus the network select
+  if (!STATE.unlocked && $("cnPass")) $("cnPass").focus();
+  else if (STATE.unlocked && $("cnNetwork")) $("cnNetwork").focus();
 };
 
 /* ── cross-scan message: key was imported/created on the wrong network, and crossNetworkScan
@@ -2404,11 +2501,17 @@ $("suConfirm").addEventListener("keydown", e => { if (e.key === "Enter") $("suBt
 $("suBtn").onclick = async () => {
   const t = GATE_T || GATE_I18N.en, pass = $("suPass").value, conf = $("suConfirm").value;
   $("gateMsg").classList.add("hide");
+  // ⛔ FOOTGUN FIX v0.5.2: refuse to create-vault if accounts already exist.
+  // This is defense-in-depth — the backend also blocks this, but a double-check
+  // here prevents any round-trip and gives a clear error immediately.
+  if (STATE.accounts && STATE.accounts.length > 0) {
+    flash($("gateMsg"), "You already have accounts in this wallet. Unlock it instead of creating a new vault.", false);
+    return;
+  }
   if (pass.length < 8) { flash($("gateMsg"), t.suTooShort || "Use at least 8 characters.", false); return; }
   if (pass !== conf)   { flash($("gateMsg"), t.suMatchNo || "Passwords don't match yet.", false); return; }
   const btn = $("suBtn"); btn.disabled = true;
-  // current model: the first create() sets the vault password + mints the first key. SYNC(Kevin):
-  // if the backend grows a standalone `setpassword`, call it here before create() and keep the same UX.
+  // current model: the first create() sets the vault password + mints the first key.
   const r = await cmd("create", { password: pass });
   if (!r.ok) { btn.disabled = false; flash($("gateMsg"), escapeHtml(r.msg || "could not create the vault"), false); return; }
   $("suPass").value = ""; $("suConfirm").value = ""; $("suMatch").classList.add("hide");
@@ -2420,6 +2523,11 @@ $("suBtn").onclick = async () => {
 };
 // "Already have a key? Import it instead" — reveal the Create/Import tabs (advanced first-run path)
 $("suImportLink").onclick = () => {
+  // ⛔ FOOTGUN FIX v0.5.2: if accounts exist, redirect to unlock instead
+  if (STATE.accounts && STATE.accounts.length > 0) {
+    renderGateMode(); // re-renders as "locked" (vaultState returns "locked")
+    return;
+  }
   $("paneSetup").classList.add("hide");
   document.querySelector(".tabs").classList.remove("hide");
   $("tabUnlock").classList.add("hide");
@@ -2449,6 +2557,13 @@ function openSettings() {
     </div>
 
     <div class="set-group">
+      <div class="gh">${escapeHtml(t.secSecurity || "Security")}</div>
+      <div class="set-row" id="setChangePw" role="button" tabindex="0"><div class="ric"><svg><use href="#g-key"/></svg></div>
+        <div class="tx"><b>${escapeHtml(t.changePw || "Change password")}</b><small>${escapeHtml(t.changePwSub || "Re-encrypt all keys with a new password")}</small></div>
+        <svg class="ic chev"><use href="#g-chev-right"/></svg></div>
+    </div>
+
+    <div class="set-group">
       <div class="gh">${escapeHtml(t.secBackup)}</div>
       <div class="set-row" id="setExport" role="button" tabindex="0"><div class="ric"><svg><use href="#g-download"/></svg></div>
         <div class="tx"><b>${escapeHtml(t.exportT)}</b><small>${escapeHtml(t.exportSub)}</small></div>
@@ -2470,9 +2585,42 @@ function openSettings() {
     } else flash($("setMsg"), escapeHtml((r && r.msg) || "could not save"), false);
   };
   $("setLockNow").onclick = async () => { await cmd("lock"); closeSheet(); await refreshStatus(); $("gate").classList.remove("hide"); };
+  $("setChangePw").onclick = openChangePwFlow;
   $("setExport").onclick = openExportFlow;
   $("setImport").onclick = openImportFlow;
 }
+// Change password → clean sub-screen: current + new + confirm → re-encrypt all keys.
+function openChangePwFlow() {
+  const t = SET_T || SET_I18N.en;
+  openSheet(`
+    <h3 style="margin:0 0 4px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px"><svg class="ic"><use href="#g-key"/></svg>${escapeHtml(t.changePwTitle || "Change wallet password")}</h3>
+    <div class="muted" style="font-size:11.5px;margin:0 0 14px">${escapeHtml(t.changePwDesc || "Re-encrypt all keys with a new password. You'll need the new password to unlock next time.")}</div>
+    <label>${escapeHtml(t.changePwOldLbl || "Current password")}</label>
+    <input id="cpOld" type="password" placeholder="${escapeHtml(t.changePwOldPh || "current password")}" autocomplete="off" />
+    <label>${escapeHtml(t.changePwNewLbl || "New password")}</label>
+    <input id="cpNew" type="password" placeholder="${escapeHtml(t.changePwNewPh || "at least 8 characters")}" autocomplete="off" />
+    <label>${escapeHtml(t.changePwConfirmLbl || "Confirm new password")}</label>
+    <input id="cpConfirm" type="password" placeholder="${escapeHtml(t.changePwConfirmPh || "type it again")}" autocomplete="off" />
+    <div class="set-note info"><svg class="ic"><use href="#g-shield"/></svg><span>${t.backupWarn}</span></div>
+    <button class="btn" id="cpBtn" style="margin-top:14px"><svg class="ic"><use href="#g-check"/></svg> ${escapeHtml(t.changePwBtn || "Change password")}</button>
+    <button class="btn ghost sm" id="cpBack" style="margin-top:8px;width:100%">${escapeHtml(t.back)}</button>
+    <div class="msg hide" id="cpMsg"></div>
+  `, false);
+  $("cpBack").onclick = openSettings;
+  $("cpBtn").onclick = async () => {
+    const oldPw = $("cpOld").value, nw = $("cpNew").value, cf = $("cpConfirm").value;
+    if (!oldPw) { flash($("cpMsg"), "Enter your current password.", false); return; }
+    if (nw.length < 8) { flash($("cpMsg"), "New password must be at least 8 characters.", false); return; }
+    if (nw !== cf) { flash($("cpMsg"), "New passwords don't match.", false); return; }
+    if (oldPw === nw) { flash($("cpMsg"), "New password must be different from current.", false); return; }
+    const r = await cmd("changepassword", { oldPassword: oldPw, newPassword: nw });
+    if (r && r.ok) {
+      flash($("cpMsg"), `Password changed — ${r.changed} key(s) re-encrypted.`, true);
+      $("cpOld").value = ""; $("cpNew").value = ""; $("cpConfirm").value = "";
+    } else flash($("cpMsg"), escapeHtml((r && r.msg) || "Could not change password."), false);
+  };
+}
+
 // Export → its own clean sub-screen: vault password → download the ENCRYPTED blob as a file.
 function openExportFlow() {
   const t = SET_T || SET_I18N.en;
@@ -2537,6 +2685,223 @@ function openImportFlow() {
 }
 $("settingsBtn").onclick = openSettings;
 $("settingsBtn").addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" ") openSettings(); });
+$("toolsBtn").onclick = openToolsSheet;
+$("toolsBtn").addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" ") openToolsSheet(); });
+
+/* ── Tools sheet (Anchor-style utilities) ── */
+function openToolsSheet() {
+  openSheet(`
+    <h3 style="margin:0 0 4px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px"><svg class="ic"><use href="#g-wallet"/></svg>Tools</h3>
+    <div class="muted" style="font-size:11.5px;margin:0 0 14px">Anchor-style utilities for power users — random keys, contract tables, raw actions.</div>
+
+    <div class="set-group">
+      <div class="gh">Key tools</div>
+      <button class="btn ghost" id="toolRandomKey" style="width:100%;margin-bottom:6px"><svg class="ic"><use href="#g-key"/></svg> Generate random K1 keypair</button>
+      <div id="randomKeyOut" class="hide" style="padding:10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;font-size:11.5px;word-break:break-all;line-height:1.7;background:rgba(255,255,255,.02)"></div>
+    </div>
+
+    <div class="set-group">
+      <div class="gh">Create on-chain account</div>
+      <div class="banner" style="margin:0 0 10px"><svg class="ic"><use href="#g-shield"/></svg><span>Creates a <b>new on-chain account</b> with a fresh keypair. The creator pays RAM + CPU/NET stake in one atomic transaction.</span></div>
+      <div id="newacctForm">
+        <label>New account name <span class="muted">(12 chars, a-z 1-5 .)</span></label>
+        <input id="newacctName" placeholder="e.g. mynewacct12" maxlength="12" autocomplete="off" spellcheck="false" />
+        <label>Creator <span class="muted">(pays RAM + stake)</span></label>
+        <select id="newacctCreator"></select>
+        <label>RAM (bytes)</label>
+        <input id="newacctRam" placeholder="4096" inputmode="numeric" />
+        <div class="row" style="margin-top:0">
+          <div><label>CPU stake</label><input id="newacctCpu" placeholder="0.5 ${escapeHtml((STATE.chain&&STATE.chain.coreSymbol)||'WAX')}" /></div>
+          <div><label>NET stake</label><input id="newacctNet" placeholder="0.5 ${escapeHtml((STATE.chain&&STATE.chain.coreSymbol)||'WAX')}" /></div>
+        </div>
+        <button class="btn" id="toolCreateAccount" style="margin-top:14px"><svg class="ic"><use href="#g-plus"/></svg> Review &amp; create</button>
+      </div>
+      <div id="newacctConfirm" class="hide" style="padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);margin-top:4px">
+        <div class="lbl" style="margin-bottom:10px">You are about to broadcast 3 actions</div>
+        <div class="sign-kv"><span class="k">New account</span><span class="v" id="nacSumName">—</span></div>
+        <div class="sign-kv"><span class="k">Creator pays</span><span class="v" id="nacSumCreator">—</span></div>
+        <div class="sign-kv"><span class="k">RAM</span><span class="v" id="nacSumRam">—</span></div>
+        <div class="sign-kv"><span class="k">CPU stake</span><span class="v" id="nacSumCpu">—</span></div>
+        <div class="sign-kv"><span class="k">NET stake</span><span class="v" id="nacSumNet">—</span></div>
+        <div class="sign-kv"><span class="k">Network</span><span class="v" id="nacSumNet2">—</span></div>
+        <div class="banner warn" style="margin:12px 0 0"><svg class="ic"><use href="#g-alert"/></svg><span><b>This broadcasts a real transaction.</b> A new keypair will be generated and encrypted in your vault — the new account's private key is stored on this device only.</span></div>
+        <button class="btn seal" id="nacSealBtn" style="margin-top:12px"><svg class="ic"><use href="#g-seal"/></svg> Seal &amp; Create account</button>
+        <button class="btn ghost" id="nacCancelBtn" style="margin-top:6px">Cancel</button>
+        <div class="msg hide" id="nacMsg"></div>
+      </div>
+      <div id="newacctOut" class="hide" style="margin-top:8px;font-size:12px"></div>
+    </div>
+
+    <div class="set-group">
+      <div class="gh">Smart contract</div>
+      <label>Contract</label>
+      <input id="toolContract" placeholder="e.g. eosio" spellcheck="false" />
+      <div class="row" style="margin-top:8px">
+        <div style="flex:2"><label>Table</label><input id="toolTable" placeholder="e.g. delband" spellcheck="false" /></div>
+        <div style="flex:2"><label>Scope</label><input id="toolScope" placeholder="account name" spellcheck="false" /></div>
+        <div style="flex:1"><label>Limit</label><input id="toolLimit" placeholder="10" inputmode="numeric" /></div>
+      </div>
+      <button class="btn ghost sm" id="toolQuery" style="width:100%;margin-top:10px"><svg class="ic"><use href="#g-refresh"/></svg> Query table rows</button>
+      <div id="toolTableOut" class="hide" style="margin-top:8px;max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:ui-monospace,monospace;font-size:11px;line-height:1.6;background:rgba(0,0,0,.2)"></div>
+    </div>
+
+    <div class="set-group">
+      <div class="gh">Push custom action</div>
+      <label>Contract</label>
+      <input id="toolActContract" placeholder="e.g. eosio" spellcheck="false" />
+      <label style="margin-top:8px">Action name</label>
+      <input id="toolActName" placeholder="e.g. buyram" spellcheck="false" />
+      <label style="margin-top:8px">Data (JSON)</label>
+      <input id="toolActData" placeholder='{"payer":"myacct","receiver":"myacct","bytes":4096}' spellcheck="false" />
+      <button class="btn ghost" id="toolPushAction" style="width:100%;margin-top:10px"><svg class="ic"><use href="#g-send"/></svg> Push action (signs & broadcasts!)</button>
+      <div id="toolActOut" class="hide" style="margin-top:8px;font-size:12px"></div>
+    </div>
+
+    <div class="set-group">
+      <div class="gh">Quick shortcuts</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button class="btn ghost sm" data-tool-sys="rammarket">RAM market</button>
+        <button class="btn ghost sm" data-tool-sys="delband">My staked</button>
+        <button class="btn ghost sm" data-tool-sys="voters">BPs / voters</button>
+        <button class="btn ghost sm" data-tool-sys="userres">My resources</button>
+      </div>
+    </div>
+    <div class="msg hide" id="toolMsg"></div>
+  `, false);
+
+  // Populate creator dropdown for Create Account
+  (function populateNewacctCreator() {
+    const sel = $("newacctCreator");
+    if (!sel) return;
+    const bound = (STATE.accounts || []).filter(a => a.account);
+    sel.innerHTML = bound.length
+      ? bound.map(a => `<option value="${escapeHtml(a.account)}" ${a.account === STATE.active ? "selected" : ""}>${escapeHtml(a.account)} · ${escapeHtml(a.permission || "active")}</option>`).join("")
+      : `<option value="">— no bound accounts —</option>`;
+  })();
+
+  // ── Create account flow (newaccount) ──
+  $("toolCreateAccount").onclick = () => {
+    $("newacctOut").classList.add("hide"); $("nacMsg").classList.add("hide");
+    const name = $("newacctName").value.trim();
+    const creator = $("newacctCreator").value;
+    const ram = $("newacctRam").value.trim() || "4096";
+    const cpu = $("newacctCpu").value.trim() || "0.5";
+    const net = $("newacctNet").value.trim() || "0.5";
+    const sym = (STATE.chain && STATE.chain.coreSymbol) || "WAX";
+
+    // Validate
+    if (!/^[a-z1-5.]{1,12}$/.test(name)) { flash($("newacctOut"), "Account name must be 1–12 chars: a–z, 1–5, or dot.", false); return; }
+    if (!creator) { flash($("newacctOut"), "Pick a creator account (must be unlocked).", false); return; }
+    if (!STATE.unlocked) { flash($("newacctOut"), "Unlock the wallet first — the creator key must be decrypted.", false); return; }
+    if (isNaN(parseInt(ram)) || parseInt(ram) < 128) { flash($("newacctOut"), "RAM must be at least 128 bytes.", false); return; }
+    const cpuQty = parseFloat(cpu); const netQty = parseFloat(net);
+    if (!(cpuQty > 0) || !(netQty > 0)) { flash($("newacctOut"), "CPU and NET stake must be > 0.", false); return; }
+
+    // Show confirmation (seal-amber step)
+    $("newacctForm").classList.add("hide");
+    $("nacSumName").textContent = name;
+    $("nacSumCreator").textContent = creator;
+    $("nacSumRam").textContent = `${parseInt(ram).toLocaleString()} bytes`;
+    $("nacSumCpu").textContent = `${cpuQty} ${sym}`;
+    $("nacSumNet").textContent = `${netQty} ${sym}`;
+    $("nacSumNet2").textContent = (STATE.chain && STATE.chain.name) || "—";
+    $("newacctConfirm").classList.remove("hide");
+  };
+
+  $("nacCancelBtn").onclick = () => {
+    $("newacctConfirm").classList.add("hide");
+    $("newacctForm").classList.remove("hide");
+  };
+
+  $("nacSealBtn").onclick = async () => {
+    const name = $("newacctName").value.trim();
+    const creator = $("newacctCreator").value;
+    const ram = parseInt($("newacctRam").value.trim()) || 4096;
+    const cpu = ($("newacctCpu").value.trim() || "0.5");
+    const net = ($("newacctNet").value.trim() || "0.5");
+    const btn = $("nacSealBtn"); const lbl = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = "Broadcasting…";
+
+    const r = await cmd("newaccount", { name, creator, ram, cpu, net });
+    btn.disabled = false; btn.innerHTML = lbl;
+
+    if (r && r.ok && r.result && r.result.created) {
+      const res = r.result;
+      const exp = res.explorer;
+      const expLink = exp
+        ? `<span class="exp-link tx-link" onclick="openExt('${escapeHtml(exp)}')" onkeydown="if(event.key==='Enter')openExt('${escapeHtml(exp)}')" tabindex="0" role="link" data-url="${escapeHtml(exp)}"><svg class="ic"><use href="#g-send"/></svg> View on explorer</span>`
+        : (res.txId ? `<span class="mono">${escapeHtml(res.txId.slice(0,20))}…</span>` : "");
+      flash($("nacMsg"), `<svg class="ic" style="vertical-align:-3px"><use href="#g-check"/></svg> Account <b>${escapeHtml(res.account)}</b> created on ${escapeHtml(res.network || "")}.<br>${expLink}`, true);
+      $("nacSealBtn").classList.add("hide");
+      $("nacCancelBtn").classList.add("hide");
+      $("newacctOut").classList.remove("hide");
+      $("newacctOut").innerHTML = `<span class="okmsg"><svg class="ic" style="width:13px;height:13px;vertical-align:-2px"><use href="#g-check"/></svg> Account <b>${escapeHtml(res.account)}</b> created — tx: ${escapeHtml(res.txId || "")}</span>` +
+        (exp ? ` <span class="tx-link" onclick="openExt('${escapeHtml(exp)}')" style="cursor:pointer">View</span>` : "");
+      // Refresh accounts — the new key was stored in the vault
+      setTimeout(() => { refreshStatus(); if (STATE.active) loadAccount(STATE.active); }, 1500);
+    } else {
+      flash($("nacMsg"), escapeHtml((r && r.msg) || "Could not create the account."), false);
+    }
+  };
+
+  // Random key
+  $("toolRandomKey").onclick = async () => {
+    const r = await cmd("randomkey");
+    const out = $("randomKeyOut");
+    if (r && r.ok) {
+      out.innerHTML = `<div style="color:var(--dim);margin-bottom:4px">Private key (copy & keep safe):</div><b style="color:var(--warn)">${escapeHtml(r.privateKey)}</b><div style="color:var(--dim);margin:6px 0 4px">Public key:</div><span style="color:var(--acc)">${escapeHtml(r.publicKey)}</span>`;
+      out.classList.remove("hide");
+    } else flash($("toolMsg"), escapeHtml((r && r.msg) || "failed"), false);
+  };
+
+  // Table query
+  $("toolQuery").onclick = async () => {
+    const code = $("toolContract").value.trim(), table = $("toolTable").value.trim();
+    const scope = $("toolScope").value.trim(), limit = $("toolLimit").value || "10";
+    if (!code || !table) { flash($("toolMsg"), "Contract and table are required.", false); return; }
+    const r = await cmd("table", { code, scope: scope || code, table, limit });
+    const out = $("toolTableOut");
+    if (r && r.ok) {
+      const rows = r.rows || [];
+      out.innerHTML = rows.length
+        ? `<div style="color:var(--dim);margin-bottom:4px">${rows.length} row(s)${r.more ? " (more available)" : ""}</div><pre style="margin:0;white-space:pre-wrap">${escapeHtml(JSON.stringify(rows, null, 2).slice(0, 4000))}</pre>`
+        : `<div class="muted">No rows found.</div>`;
+      out.classList.remove("hide");
+    } else flash($("toolMsg"), escapeHtml((r && r.msg) || "query failed"), false);
+  };
+
+  // Push action
+  $("toolPushAction").onclick = async () => {
+    const contract = $("toolActContract").value.trim(), action = $("toolActName").value.trim();
+    let data;
+    try { data = JSON.parse($("toolActData").value || "{}"); } catch { flash($("toolMsg"), "Invalid JSON data.", false); return; }
+    if (!contract || !action) { flash($("toolMsg"), "Contract and action name are required.", false); return; }
+    if (!STATE.active) { flash($("toolMsg"), "Select an account to sign with first.", false); return; }
+    if (!confirm(`Push action "${action}" on ${contract} as ${STATE.active}? This will broadcast a real transaction.`)) return;
+    const r = await cmd("pushaction", { contract, action, data, from: STATE.active });
+    const out = $("toolActOut");
+    if (r && r.ok) {
+      out.innerHTML = `<span class="okmsg"><svg class="ic" style="width:13px;height:13px;vertical-align:-2px"><use href="#g-check"/></svg> Broadcast: ${escapeHtml(r.txId || "")}</span>` +
+        (r.explorer ? ` <span class="tx-link" onclick="openExt('${escapeHtml(r.explorer)}')" style="cursor:pointer">View</span>` : "");
+      out.classList.remove("hide");
+      // Refresh account after action
+      setTimeout(() => { if (STATE.active) loadAccount(STATE.active); }, 1500);
+    } else flash($("toolMsg"), escapeHtml((r && r.msg) || "action failed"), false);
+  };
+
+  // System shortcuts — pre-fill the table query fields
+  for (const btn of document.querySelectorAll("[data-tool-sys]")) {
+    btn.onclick = () => {
+      const sys = btn.dataset.toolSys;
+      const acct = STATE.active || "";
+      if (sys === "rammarket") { $("toolContract").value = "eosio"; $("toolTable").value = "rammarket"; $("toolScope").value = "eosio"; }
+      else if (sys === "delband") { $("toolContract").value = "eosio"; $("toolTable").value = "delband"; $("toolScope").value = acct; }
+      else if (sys === "voters") { $("toolContract").value = "eosio"; $("toolTable").value = "voters"; $("toolScope").value = "eosio"; $("toolLimit").value = "5"; }
+      else if (sys === "userres") { $("toolContract").value = "eosio"; $("toolTable").value = "userres"; $("toolScope").value = acct; }
+      flash($("toolMsg"), "Table pre-filled — tap Query.", true);
+    };
+  }
+}
 
 async function initBio() {
   try { if (!window.PublicKeyCredential) return;
