@@ -249,6 +249,49 @@ function aaReadString(bytes, posRef) {
   return Buffer.from(slice).toString("utf8");
 }
 
+// base58btc (Bitcoin alphabet) encoder — zero-dep. Used to turn the RAW
+// multihash bytes that AtomicAssets stores for ipfs/image fields back into a
+// CID string (a 0x12 0x20-prefixed sha2-256 multihash -> CIDv0 "Qm…").
+const B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function base58btcEncode(bytes) {
+  if (!bytes || bytes.length === 0) return "";
+  const input = Array.from(bytes);
+  let zeros = 0;
+  while (zeros < input.length && input[zeros] === 0) zeros++;
+  const out = [];
+  let start = zeros;
+  while (start < input.length) {
+    let remainder = 0;
+    for (let i = start; i < input.length; i++) {
+      const acc = remainder * 256 + input[i];
+      input[i] = Math.floor(acc / 58);
+      remainder = acc % 58;
+    }
+    out.push(remainder);
+    while (start < input.length && input[start] === 0) start++;
+  }
+  let str = "";
+  for (let i = 0; i < zeros; i++) str += B58_ALPHABET[0];
+  for (let i = out.length - 1; i >= 0; i--) str += B58_ALPHABET[out[i]];
+  return str;
+}
+
+// ipfs / image fields: AtomicAssets serializes these as a length-prefixed RAW
+// byte vector (the decoded IPFS multihash), NOT a UTF-8 string. Reading them as
+// a string yields garbage ("\x12\x20…"). Base58btc-encode the raw bytes to get
+// the CID back. A few collections instead store a literal CID/URL string — if
+// the bytes are all printable ASCII, keep them verbatim.
+function aaReadIpfs(bytes, posRef) {
+  const len = aaReadVarint(bytes, posRef);
+  if (posRef.pos + len > bytes.length) throw new Error("AtomicAssets ipfs overruns buffer");
+  const slice = bytes.slice(posRef.pos, posRef.pos + len);
+  posRef.pos += len;
+  if (slice.length === 0) return "";
+  const printable = Array.from(slice).every((b) => b >= 0x20 && b < 0x7f);
+  if (printable) return Buffer.from(slice).toString("utf8");
+  return base58btcEncode(slice);
+}
+
 function aaReadAttribute(bytes, type, posRef) {
   const base = type.replace(/\[\]$/, "");
   const isArray = type.endsWith("[]");
@@ -276,7 +319,8 @@ function aaReadAttribute(bytes, type, posRef) {
         for (let i = 0; i < 8; i++) arr[i] = bytes[posRef.pos++];
         return new DataView(arr.buffer).getFloat64(0, true);
       }
-      case "string": case "image": case "ipfs": return aaReadString(bytes, posRef);
+      case "string": return aaReadString(bytes, posRef);
+      case "image": case "ipfs": return aaReadIpfs(bytes, posRef);
       case "bool": return bytes[posRef.pos++] !== 0;
       default: throw new Error(`unsupported AtomicAssets type "${base}"`);
     }
@@ -318,7 +362,8 @@ function deserializeAtomicData(input, format) {
   return result;
 }
 
-// In-memory cache for AtomicAssets schemas and templates. TTL = 30s, never disk.
+// In-memory cache for AtomicAssets metadata. TTL = 30s, never disk (privacy decision).
+// Covers schemas, templates, collections. Cleared on plugin reload; never written to disk.
 const _aaCache = new Map();
 function aaCacheGet(key) {
   const entry = _aaCache.get(key);
@@ -327,6 +372,13 @@ function aaCacheGet(key) {
   return entry.data;
 }
 function aaCacheSet(key, data) { _aaCache.set(key, { data, ts: Date.now() }); }
+function aaCacheClear() { _aaCache.clear(); }
+function aaCacheKeys(pattern) {
+  const re = pattern instanceof RegExp ? pattern : new RegExp(pattern);
+  const out = [];
+  for (const k of _aaCache.keys()) if (re.test(k)) out.push(k);
+  return out;
+}
 
 async function chainInfo(chain) {
   const info = await rpc(chain, "get_info");
@@ -538,6 +590,96 @@ function assertAccountName(name, field = "account") {
   return s;
 }
 
+// ── AtomicAssets media + IPFS helpers (Phase B/C) ─────────────────────
+// Sahara verified gateway order (Research Board, 2026-06-26):
+//   1) resizer.atomichub.io — thumbnail/fast preview (adds ?size=N)
+//   2) ipfs.io — public full-res gateway
+//   3) dweb.link — public full-res fallback
+// DEAD (do not use): cloudflare-ipfs.com, ipfs.atomichub.io, atomichub-ipfs.com
+const IPFS_GATEWAYS = {
+  thumbnail: "https://resizer.atomichub.io/images/v1/preview?ipfs=",
+  full: ["https://ipfs.io/ipfs/", "https://dweb.link/ipfs/"],
+};
+
+// AtomicAssets media field convention (verified live):
+//   img / image / backimg / video / audio / glb  (type often = "image" or "ipfs")
+// Values are usually bare IPFS CIDs, sometimes CID/path/file.ext, sometimes full http(s) URLs.
+const AA_MEDIA_FIELDS = ["img", "image", "backimg", "video", "audio", "glb"];
+const AA_MEDIA_TYPES = new Map([
+  ["video", ["mp4", "webm", "mov"]],
+  ["audio", ["mp3", "wav", "ogg", "flac"]],
+  ["glb", ["glb", "gltf"]],
+  ["image", ["png", "jpg", "jpeg", "gif", "webp", "svg"]],
+]);
+
+function extOf(url) {
+  try {
+    const u = new URL(String(url).replace(/^ipfs:\/\//, "https://x/"));
+    const pathname = u.pathname || "";
+    const match = pathname.match(/\.([a-zA-Z0-9]+)(?:[?#]|$)/);
+    return match ? match[1].toLowerCase() : null;
+  } catch { return null; }
+}
+
+function detectMediaType(url) {
+  const ext = extOf(url);
+  if (!ext) return "image";
+  for (const [type, exts] of AA_MEDIA_TYPES) if (exts.includes(ext)) return type;
+  return "image";
+}
+
+function stripIpfsPrefix(s) {
+  const v = String(s).trim();
+  if (v.startsWith("ipfs://")) return v.slice(7);
+  return v;
+}
+
+function ipfsUrl(cid, opts = {}) {
+  if (!cid) return null;
+  const v = stripIpfsPrefix(cid);
+  if (/^https?:\/\//i.test(v)) return v;
+  if (opts.thumbnail) {
+    const size = opts.size || 370;
+    return `${IPFS_GATEWAYS.thumbnail}${encodeURIComponent(v)}&size=${size}`;
+  }
+  const gateway = IPFS_GATEWAYS.full[opts.gatewayIndex || 0] || IPFS_GATEWAYS.full[0];
+  return gateway + v;
+}
+
+// Build a full-res fallback chain for <img srcset> / JS retry.
+function ipfsUrlSet(cid, opts = {}) {
+  const url = ipfsUrl(cid, opts);
+  if (!url) return [];
+  const v = stripIpfsPrefix(cid);
+  if (/^https?:\/\//i.test(v)) return [url];
+  return IPFS_GATEWAYS.full.map((g) => g + v);
+}
+
+function resolveMediaUrl(value, opts = {}) {
+  if (!value) return null;
+  const v = stripIpfsPrefix(value);
+  if (/^https?:\/\//i.test(v)) return v;
+  return ipfsUrl(v, opts);
+}
+
+function extractMedia(immutable, templateImmutable) {
+  const merged = { ...(templateImmutable || {}), ...(immutable || {}) };
+  for (const field of AA_MEDIA_FIELDS) {
+    const v = merged[field];
+    if (v != null && String(v).trim()) {
+      const raw = String(v).trim();
+      return { field, type: detectMediaType(raw), url: resolveMediaUrl(raw, { thumbnail: field === "backimg" }) };
+    }
+  }
+  return null;
+}
+
+// Backwards-compatible image helper used by older callers.
+function primaryImageUrl(immutable, templateImmutable) {
+  const m = extractMedia(immutable, templateImmutable);
+  return m && (m.type === "image" || m.type === "video" || m.type === "glb") ? m.url : null;
+}
+
 // ── AtomicAssets NFT inventory (Phase A) ─────────────────────────────
 // Read + decode an account's assets directly from the AtomicAssets
 // contract. Pagination follows get_table_rows next_key. Filters are
@@ -633,7 +775,7 @@ async function getAtomicAssets(chain, account, options = {}) {
 
     const col = collectionMap.get(a.collection_name);
     const name = immutable.name || templateImmutable.name || `${a.collection_name} #${a.asset_id}`;
-    const image = immutable.img || templateImmutable.img || null;
+    const media = extractMedia(immutable, templateImmutable);
 
     return {
       asset_id: String(a.asset_id),
@@ -644,8 +786,9 @@ async function getAtomicAssets(chain, account, options = {}) {
       immutable,
       mutable,
       name,
-      image,
-      image_url: image ? ipfsUrl(image) : null,
+      image: media && (media.type === "image" || media.type === "video" || media.type === "glb") ? media.url : null,
+      image_url: media && (media.type === "image" || media.type === "video" || media.type === "glb") ? media.url : null,
+      media,
       video: immutable.video || templateImmutable.video || null,
       rarity: immutable.rarity || templateImmutable.rarity || null,
       max_supply: template ? (template.max_supply != null ? String(template.max_supply) : null) : null,
@@ -655,16 +798,6 @@ async function getAtomicAssets(chain, account, options = {}) {
   });
 
   return { account, network: chain.id, count: decoded.length, assets: decoded };
-}
-
-// IPFS gateway used for AtomicAssets image/video CIDs. Keep it public + read-only.
-const IPFS_GATEWAY = "https://gateway.pinata.cloud/ipfs/";
-function ipfsUrl(cid) {
-  if (!cid) return null;
-  const s = String(cid).trim();
-  if (s.startsWith("http://") || s.startsWith("https://")) return s;
-  if (s.startsWith("ipfs://")) return IPFS_GATEWAY + s.slice(7);
-  return IPFS_GATEWAY + s;
 }
 
 // Fetch a single AtomicAssets asset by asset_id, decoded.
@@ -720,7 +853,7 @@ async function getAtomicAsset(chain, assetId) {
   }
 
   const name = immutable.name || templateImmutable.name || `${row.collection_name} #${row.asset_id}`;
-  const image = immutable.img || templateImmutable.img || null;
+  const media = extractMedia(immutable, templateImmutable);
 
   return {
     asset_id: String(row.asset_id),
@@ -732,8 +865,9 @@ async function getAtomicAsset(chain, assetId) {
     immutable,
     mutable,
     name,
-    image,
-    image_url: image ? ipfsUrl(image) : null,
+    image: media && (media.type === "image" || media.type === "video" || media.type === "glb") ? media.url : null,
+    image_url: media && (media.type === "image" || media.type === "video" || media.type === "glb") ? media.url : null,
+    media,
     video: immutable.video || templateImmutable.video || null,
     rarity: immutable.rarity || templateImmutable.rarity || null,
     max_supply: template ? (template.max_supply != null ? String(template.max_supply) : null) : null,
@@ -796,6 +930,110 @@ async function getAtomicAssetHistory(chain, assetId, ownerHint) {
     });
   }
   return { asset_id: targetId, network: chain.id, count: events.length, events };
+}
+
+// ── AtomicAssets collection / schema / template discovery (Phase B) ────
+// Decode a collection row. The `serialized_data` field is raw bytes with no
+// published ABI format, so we attempt a no-format decode (returns {} when empty)
+// and always keep the raw bytes for advanced callers.
+function decodeCollectionRow(chain, row) {
+  const key = `${chain.id}:collection:${row.collection_name}`;
+  let cached = aaCacheGet(key);
+  if (!cached) { cached = row; aaCacheSet(key, row); }
+  let data = {};
+  try { data = deserializeAtomicData(row.serialized_data, []); }
+  catch { /* collection serialized_data has no published ABI format; leave as {} */ }
+  return {
+    collection_name: row.collection_name,
+    author: row.author,
+    allow_notify: row.allow_notify,
+    authorized_accounts: row.authorized_accounts || [],
+    notify_accounts: row.notify_accounts || [],
+    market_fee: row.market_fee,
+    serialized_data: data,
+    raw_serialized_data: row.serialized_data,
+  };
+}
+
+// Fetch all AtomicAssets collections (code=atomicassets, scope=atomicassets, table=collections).
+async function getAtomicCollections(chain, options = {}) {
+  const limit = Math.min(Math.max(parseInt(options.limit, 10) || 1000, 1), 1000);
+  const rows = [];
+  let next_key = null;
+  do {
+    const body = { code: "atomicassets", scope: "atomicassets", table: "collections", json: true, limit: Math.min(limit - rows.length, 100) };
+    if (next_key != null) body.lower_bound = next_key;
+    const res = await rpc(chain, "get_table_rows", body);
+    for (const r of res.rows || []) rows.push(r);
+    next_key = res.more && res.next_key != null ? res.next_key : null;
+  } while (next_key != null && rows.length < limit);
+
+  return { network: chain.id, count: rows.length, collections: rows.map((r) => decodeCollectionRow(chain, r)) };
+}
+
+// Fetch schemas for one collection (scope = collection_name, table = schemas).
+async function getAtomicSchemas(chain, collection, options = {}) {
+  assertAccountName(collection, "collection");
+  const limit = Math.min(Math.max(parseInt(options.limit, 10) || 1000, 1), 1000);
+
+  // Keep collection row warm in cache for detail views.
+  const cKey = `${chain.id}:collection:${collection}`;
+  if (!aaCacheGet(cKey)) {
+    try {
+      const cres = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: "atomicassets", table: "collections", lower_bound: collection, upper_bound: collection, json: true, limit: 1 });
+      const col = (cres.rows || [])[0];
+      if (col) aaCacheSet(cKey, col);
+    } catch { /* best effort */ }
+  }
+
+  const rows = [];
+  let next_key = null;
+  do {
+    const body = { code: "atomicassets", scope: collection, table: "schemas", json: true, limit: Math.min(limit - rows.length, 100) };
+    if (next_key != null) body.lower_bound = next_key;
+    const res = await rpc(chain, "get_table_rows", body);
+    for (const r of res.rows || []) rows.push(r);
+    next_key = res.more && res.next_key != null ? res.next_key : null;
+  } while (next_key != null && rows.length < limit);
+
+  return { network: chain.id, collection, count: rows.length, schemas: rows.map((r) => ({ schema_name: r.schema_name, format: r.format || [] })) };
+}
+
+// Fetch templates for one collection, decoding each template's immutable data.
+async function getAtomicTemplates(chain, collection, options = {}) {
+  assertAccountName(collection, "collection");
+  const limit = Math.min(Math.max(parseInt(options.limit, 10) || 1000, 1), 1000);
+
+  // Resolve schemas first so we can decode template immutable data.
+  const schemaRes = await getAtomicSchemas(chain, collection, { limit: 1000 });
+  const formatMap = new Map(schemaRes.schemas.map((s) => [s.schema_name, s.format || []]));
+
+  const rows = [];
+  let next_key = null;
+  do {
+    const body = { code: "atomicassets", scope: collection, table: "templates", json: true, limit: Math.min(limit - rows.length, 100) };
+    if (next_key != null) body.lower_bound = next_key;
+    const res = await rpc(chain, "get_table_rows", body);
+    for (const r of res.rows || []) rows.push(r);
+    next_key = res.more && res.next_key != null ? res.next_key : null;
+  } while (next_key != null && rows.length < limit);
+
+  const templates = rows.map((r) => {
+    const format = formatMap.get(r.schema_name) || [];
+    const immutable = deserializeAtomicData(r.immutable_serialized_data, format);
+    return {
+      template_id: r.template_id,
+      schema_name: r.schema_name,
+      transferable: r.transferable,
+      burnable: r.burnable,
+      max_supply: r.max_supply != null ? String(r.max_supply) : null,
+      issued_supply: r.issued_supply != null ? String(r.issued_supply) : null,
+      immutable,
+      media: extractMedia(immutable, {}),
+    };
+  });
+
+  return { network: chain.id, collection, count: templates.length, templates };
 }
 
 // ── Keystore (encrypted at rest; accounts SCOPED PER NETWORK) ────────
@@ -1870,7 +2108,7 @@ module.exports = (ctx) => {
           return reply({ ok: true, network: net.id, publicKey: pk, accountNames: list, count: list.length });
         }
 
-        // ── NFT Inventory (Phase A) ───────────────────────────────────
+        // ── NFT Inventory (Phase A + B + C) ───────────────────────────
         case "nftassets": {
           const net = resolveNet(a.network);
           const account = a.account || parts[0];
@@ -1898,6 +2136,33 @@ module.exports = (ctx) => {
           if (assetId == null) return reply({ ok: false, msg: "asset_id required" });
           const result = await getAtomicAssetHistory(net, assetId, owner);
           return reply({ ok: true, ...result });
+        }
+
+        case "nftcollections": {
+          const net = resolveNet(a.network);
+          const result = await getAtomicCollections(net, { limit: a.limit });
+          return reply({ ok: true, ...result });
+        }
+
+        case "nftschemas": {
+          const net = resolveNet(a.network);
+          const collection = a.collection || parts[0];
+          if (!collection) return reply({ ok: false, msg: "collection name required" });
+          const result = await getAtomicSchemas(net, collection, { limit: a.limit });
+          return reply({ ok: true, ...result });
+        }
+
+        case "nfttemplates": {
+          const net = resolveNet(a.network);
+          const collection = a.collection || parts[0];
+          if (!collection) return reply({ ok: false, msg: "collection name required" });
+          const result = await getAtomicTemplates(net, collection, { limit: a.limit });
+          return reply({ ok: true, ...result });
+        }
+
+        case "nftcacheclear": {
+          aaCacheClear();
+          return reply({ ok: true, cleared: true });
         }
 
         case "transfernft": return reply({ ok: true, ...(await transferNFT(a)) });

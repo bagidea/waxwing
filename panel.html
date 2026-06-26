@@ -448,29 +448,117 @@
   .set-note.info .ic { color:var(--acc); }
   [dir="rtl"] .set-row, [dir="rtl"] .set-note, [dir="rtl"] .set-group > .gh { text-align:right; }
 
-/* ── inventory grid ── */
-.inv-filters { display:flex; gap:8px; margin-bottom:12px; }
-.inv-filters select { flex:1; font-size:12px; padding:9px 10px; }
-.inv-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
-.inv-card { background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line); border-radius:16px; overflow:hidden; cursor:pointer; transition:border-color .12s, transform .12s; }
-.inv-card:hover { border-color:rgba(120,170,255,.5); transform:translateY(-1px); }
-.inv-img { aspect-ratio:1; background:#0a1120; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-.inv-img img { width:100%; height:100%; object-fit:cover; }
-.inv-img .placeholder { width:48px; height:48px; color:var(--dim); }
-.inv-meta { padding:10px 11px; }
-.inv-meta .nm { font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.inv-meta .sub { font-size:10.5px; color:var(--dim); margin-top:3px; display:flex; justify-content:space-between; }
-.inv-meta .mut { font-size:10px; color:var(--acc); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.inv-empty { text-align:center; padding:30px 12px; color:var(--dim); }
-.inv-empty .ic { width:40px; height:40px; color:var(--line); margin-bottom:8px; }
-.inv-detail .dimg { width:100%; aspect-ratio:1; border-radius:16px; background:#0a1120; overflow:hidden; margin-bottom:12px; }
-.inv-detail .dimg img { width:100%; height:100%; object-fit:cover; }
-.inv-detail .dname { font-size:16px; font-weight:800; margin-bottom:4px; }
-.inv-detail .dsub { font-size:11px; color:var(--dim); margin-bottom:12px; }
-.inv-props { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
-.inv-prop { background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
-.inv-prop .k { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); font-weight:700; }
-.inv-prop .v { font-size:11.5px; color:var(--fg); margin-top:2px; overflow:hidden; text-overflow:ellipsis; }
+/* ── inventory (AtomicAssets NFTs) ── */
+.inv-controls { display:flex; gap:8px; margin-bottom:10px; }
+.inv-controls input { flex:1; font-size:13px; padding:10px 12px; }
+.inv-pills { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+.inv-pill { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:var(--mut);
+  background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:999px; padding:6px 11px; cursor:pointer; }
+.inv-pill:hover { border-color:rgba(120,170,255,.4); color:var(--fg); }
+.inv-pill .lbl { color:var(--dim); font-weight:500; }
+.fmeta { display:flex; align-items:center; gap:8px; margin:12px 2px 10px; font-size:12px; color:var(--dim); }
+.fmeta .grow { flex:1; }
+.fmeta button { background:none; border:none; color:var(--mut); font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:3px 6px; border-radius:8px; }
+.fmeta button:hover { color:var(--fg); background:rgba(255,255,255,.04); }
+.fmeta button.on { color:var(--acc); background:rgba(94,200,255,.10); }
+.fmeta .ic { width:14px; height:14px; }
+.fchips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.fchip { display:inline-flex; align-items:center; gap:5px; font-size:11px; color:#cfe0ff; background:rgba(94,200,255,.10); border:1px solid rgba(94,200,255,.28); border-radius:999px; padding:3px 9px; }
+.fchip .x { cursor:pointer; color:var(--acc); font-weight:800; padding-left:3px; }
+.nft-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
+.nft-grid.list { display:flex; flex-direction:column; gap:8px; }
+.nft { background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line); border-radius:16px; overflow:hidden; cursor:pointer; transition:border-color .12s, transform .12s; }
+.nft:hover { border-color:rgba(120,170,255,.5); transform:translateY(-1px); }
+.nft-grid.list .nft { display:flex; align-items:center; gap:10px; padding:9px; border-radius:14px; }
+.nft .art { position:relative; aspect-ratio:1; background:#0a1120; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.nft-grid.list .nft .art { width:56px; height:56px; border-radius:10px; flex:0 0 auto; aspect-ratio:auto; }
+.nft .art img { width:100%; height:100%; object-fit:cover; }
+.nft .art svg.glyph { width:40%; height:40%; color:var(--dim); }
+.nft .stage, .nft .qty { position:absolute; display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:800; color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.18); border-radius:999px; padding:2px 7px; backdrop-filter:blur(3px); }
+.nft .stage { top:7px; left:7px; }
+.nft .stage .ic { width:10px; height:10px; }
+.nft .qty { bottom:7px; right:7px; }
+.nft .meta { padding:10px 11px; }
+.nft-grid.list .nft .meta { flex:1; padding:0; }
+.nft .meta .nm2 { font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nft .meta .col { font-size:10.5px; color:var(--acc); margin-top:3px; display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; }
+.nft .meta .col .ic { width:11px; height:11px; }
+.nft .meta .tpl { font-size:10px; color:var(--dim); margin-top:3px; }
+#invEmpty { text-align:center; padding:34px 12px; color:var(--dim); }
+#invEmpty .ic { width:40px; height:40px; color:var(--line); margin-bottom:8px; }
+#invMoreWrap { margin-top:14px; }
+
+/* asset detail */
+.asset-hero { position:relative; width:100%; aspect-ratio:1; border-radius:18px; background:#0a1120; overflow:hidden; margin-bottom:14px; display:flex; align-items:center; justify-content:center; }
+.asset-hero img { width:100%; height:100%; object-fit:cover; }
+.asset-hero svg.glyph { width:40%; height:40%; color:var(--dim); }
+.asset-rarity { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; color:#b8e2ff; background:rgba(94,200,255,.12); border:1px solid rgba(94,200,255,.3); border-radius:999px; padding:3px 10px; margin-bottom:10px; }
+.asset-h { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }
+.asset-h .back { width:34px; height:34px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:10px; color:var(--mut); }
+.asset-h .back:hover { border-color:rgba(120,170,255,.5); color:var(--fg); }
+.asset-h .titles { flex:1; min-width:0; }
+.asset-h .titles h1 { font-size:17px; font-weight:800; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.asset-h .titles .sub { font-size:11px; color:var(--dim); margin-top:2px; }
+.asset-actions { display:flex; gap:8px; margin-bottom:14px; }
+.asset-actions .btn { flex:1; }
+.attr-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
+.attr { background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:10px; padding:9px 11px; }
+.attr .k { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); font-weight:700; }
+.attr .v { font-size:12px; color:var(--fg); margin-top:3px; overflow:hidden; text-overflow:ellipsis; word-break:break-word; }
+.attr .v.mut { color:var(--acc); }
+.attr.mutrow { border-color:rgba(94,200,255,.25); background:rgba(94,200,255,.05); }
+.attr .pen { width:11px; height:11px; vertical-align:-1px; margin-left:4px; }
+pre.rawjson { font-family:ui-monospace,"Cascadia Code",Consolas,monospace; font-size:11px; line-height:1.5; background:#070b16; border:1px solid var(--line); border-radius:12px; padding:12px; overflow-x:auto; color:var(--fg); }
+pre.rawjson .key { color:var(--acc); }
+pre.rawjson .mut { color:#9ad0ff; }
+pre.rawjson .str { color:#b8e6c0; }
+pre.rawjson .num { color:#ffcf6b; }
+.hist-list { display:flex; flex-direction:column; gap:8px; }
+.hit { display:flex; align-items:center; gap:10px; padding:10px 11px; background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:12px; }
+.hit .hic { width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; background:rgba(94,200,255,.10); color:var(--acc); }
+.hit .hic.in { background:rgba(91,214,160,.12); color:var(--ok); }
+.hit .hic.out { background:rgba(255,107,129,.12); color:var(--bad); }
+.hit .hic.mint { background:rgba(255,207,107,.12); color:var(--warn); }
+.hit .hic .ic { width:15px; height:15px; }
+.hit .hbody { flex:1; min-width:0; }
+.hit .hbody .t { font-size:12px; font-weight:600; }
+.hit .hbody .s { font-size:11px; color:var(--dim); margin-top:2px; }
+.hit .hwhen { font-size:11px; color:var(--dim); white-space:nowrap; }
+.skeleton { background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.09) 50%,rgba(255,255,255,.04) 75%); background-size:200% 100%; animation:shimmer 1.2s infinite; border-radius:12px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── inventory Phase B: tabs / pull-to-refresh / collections ── */
+.inv-tabs { display:flex; gap:6px; margin-bottom:12px; }
+.inv-tabs button { flex:1; background:rgba(255,255,255,.02); border:1px solid var(--line); color:var(--mut); border-radius:11px; padding:9px 5px; font-weight:700; font-size:12.5px; cursor:pointer; }
+.inv-tabs button.active { color:var(--acc); border-color:var(--acc); background:rgba(94,200,255,.08); }
+.pull-wrap { transition:transform .15s ease; }
+.pull-hint { text-align:center; color:var(--acc); font-size:12px; font-weight:700; padding:14px 0; display:flex; align-items:center; justify-content:center; gap:6px; }
+.pull-hint .ic { width:16px; height:16px; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.collection-card { background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line); border-radius:16px; overflow:hidden; cursor:pointer; transition:border-color .12s, transform .12s; }
+.collection-card:hover { border-color:rgba(120,170,255,.5); transform:translateY(-1px); }
+.collection-card .art { position:relative; aspect-ratio:1; background:#0a1120; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.collection-card .art img { width:100%; height:100%; object-fit:cover; }
+.collection-card .art svg.glyph { width:40%; height:40%; color:var(--dim); }
+.collection-card .meta { padding:10px 11px; }
+.collection-card .meta .nm2 { font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.collection-card .meta .auth { font-size:10.5px; color:var(--acc); margin-top:3px; overflow:hidden; text-overflow:ellipsis; }
+.collection-card .meta .fee { font-size:10px; color:var(--dim); margin-top:3px; }
+
+.schema-row { display:flex; flex-direction:column; gap:6px; padding:11px 12px; background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:12px; margin-bottom:8px; }
+.schema-row .nm { font-size:13px; font-weight:700; }
+.schema-row .fmt { font-size:11px; color:var(--dim); }
+
+.tpl-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
+.tpl-card { background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+.tpl-card .art { position:relative; aspect-ratio:1; background:#0a1120; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.tpl-card .art img { width:100%; height:100%; object-fit:cover; }
+.tpl-card .meta { padding:9px 10px; }
+.tpl-card .meta .nm2 { font-size:11.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tpl-card .meta .supply { font-size:10px; color:var(--dim); margin-top:2px; }
+
+.empty.center { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:34px 12px; }
 </style>
 </head>
 <body>
@@ -685,18 +773,146 @@
     <!-- ── INVENTORY ── -->
     <section class="screen" id="screen-inventory">
       <div class="screen-h"><h1>Inventory</h1><span class="sub" id="invSub">AtomicAssets NFTs</span></div>
-      <div class="inv-filters">
-        <select id="invCollection"><option value="">All collections</option></select>
-        <select id="invSchema"><option value="">All schemas</option></select>
+      <div class="inv-tabs">
+        <button class="active" id="invTabAssets" type="button">Assets</button>
+        <button id="invTabCollections" type="button">Collections</button>
       </div>
-      <div class="card tight"><div id="invGrid" class="inv-grid"><div class="inv-empty"><svg class="ic"><use href="#g-grid"/></svg><div>Loading NFTs…</div></div></div></div>
+      <!-- ASSETS VIEW -->
+      <div id="invAssetsView">
+        <div class="inv-controls">
+          <input id="invSearch" type="search" placeholder="Search assets…" autocomplete="off" spellcheck="false" />
+          <button class="iconbtn" id="invRefresh" type="button" title="Refresh"><svg class="ic"><use href="#g-refresh"/></svg></button>
+        </div>
+        <div class="inv-pills">
+          <button class="inv-pill" id="invColPick"><span class="lbl">Collection</span><span id="invColLbl">All</span><svg class="ic" style="width:12px;height:12px"><use href="#g-chev-down"/></svg></button>
+          <button class="inv-pill" id="invSchPick"><span class="lbl">Schema</span><span id="invSchLbl">All</span><svg class="ic" style="width:12px;height:12px"><use href="#g-chev-down"/></svg></button>
+        </div>
+        <div class="fchips hide" id="invChips"></div>
+        <div class="fmeta">
+          <span id="invCount"><b>0</b> assets · <b>0</b> collections</span>
+          <span class="grow"></span>
+          <button id="invSort" type="button">Sort: Recent</button>
+          <button id="invViewGrid" class="on" type="button" aria-label="Grid view"><svg class="ic"><use href="#g-grid"/></svg></button>
+          <button id="invViewList" type="button" aria-label="List view"><svg class="ic" style="stroke-width:2.5"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+        </div>
+        <div id="invPullWrap" class="pull-wrap">
+          <div id="invPullHint" class="pull-hint hide"><svg class="ic"><use href="#g-refresh"/></svg> Release to refresh</div>
+          <div id="invEmpty" class="hide"><svg class="ic"><use href="#g-grid"/></svg><div>No NFTs found.</div></div>
+          <div id="invGrid" class="nft-grid"></div>
+        </div>
+        <div id="invMoreWrap" class="hide"><button class="btn ghost" id="invMore">Load more</button></div>
+      </div>
+      <!-- COLLECTIONS VIEW -->
+      <div id="invCollectionsView" class="hide">
+        <div class="inv-controls">
+          <input id="colSearch" type="search" placeholder="Search collections…" autocomplete="off" spellcheck="false" />
+          <button class="iconbtn" id="colRefresh" type="button" title="Refresh"><svg class="ic"><use href="#g-refresh"/></svg></button>
+        </div>
+        <div class="fmeta">
+          <span id="colCount"><b>0</b> collections</span>
+          <span class="grow"></span>
+          <button id="colHeldOnly" class="on" type="button">Held only</button>
+        </div>
+        <div id="colEmpty" class="hide"><svg class="ic"><use href="#g-grid"/></svg><div>No collections found.</div></div>
+        <div id="colGrid" class="nft-grid"></div>
+      </div>
+    </section>
+
+    <!-- ── ASSET DETAIL ── -->
+    <section class="screen" id="screen-asset">
+      <div class="asset-h">
+        <div class="back" id="assetBack" role="button" tabindex="0" title="Back to inventory"><svg class="ic"><use href="#g-back"/></svg></div>
+        <div class="titles">
+          <h1 id="assetName">—</h1>
+          <div class="sub" id="assetSub">—</div>
+          <div class="sub" style="margin-top:4px;display:flex;gap:10px;flex-wrap:wrap">
+            <span id="assetCol"></span> · <span id="assetMint"></span> <span id="assetMax"></span>
+          </div>
+        </div>
+      </div>
+      <div id="assetSkeleton">
+        <div class="skeleton" style="width:100%;aspect-ratio:1;border-radius:18px;margin-bottom:14px"></div>
+        <div class="skeleton" style="width:60%;height:22px;margin-bottom:10px"></div>
+        <div class="skeleton" style="width:40%;height:14px;margin-bottom:18px"></div>
+        <div class="skeleton" style="width:100%;height:120px"></div>
+      </div>
+      <div id="assetLoaded" class="hide">
+        <div class="asset-hero" id="assetHero">
+          <img id="assetImg" class="hide" alt="" />
+          <svg id="assetGlyph" class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>
+        </div>
+        <div id="assetRarity" class="asset-rarity hide"></div>
+        <div class="asset-actions">
+          <button class="btn seal" id="assetTransfer"><svg class="ic"><use href="#g-send"/></svg> Transfer</button>
+          <button class="btn ghost" id="assetExplorer"><svg class="ic"><use href="#g-external"/></svg> Explorer</button>
+        </div>
+        <div class="card">
+          <div class="seg" id="assetSeg">
+            <button class="active" data-tab="data" type="button">Data</button>
+            <button data-tab="raw" type="button">Raw</button>
+            <button data-tab="history" type="button">History</button>
+          </div>
+          <div id="assetData" style="margin-top:12px">
+            <div class="lbl" style="margin-bottom:8px">Mutable</div>
+            <div class="attr-grid" id="assetMutable"></div>
+            <div class="lbl" style="margin:14px 0 8px">Immutable</div>
+            <div class="attr-grid" id="assetImmutable"></div>
+          </div>
+          <div id="assetRaw" class="hide" style="margin-top:12px"><pre class="rawjson" id="assetRawBlock"></pre></div>
+          <div id="assetHistory" class="hide" style="margin-top:12px"><div class="hist-list" id="assetHistList"></div></div>
+        </div>
+      </div>
+      <div class="msg hide" id="assetMsg"></div>
+    </section>
+
+    <!-- ── COLLECTION DETAIL ── -->
+    <section class="screen" id="screen-collection">
+      <div class="asset-h">
+        <div class="back" id="colDetailBack" role="button" tabindex="0" title="Back to collections"><svg class="ic"><use href="#g-back"/></svg></div>
+        <div class="titles">
+          <h1 id="colDetailName">—</h1>
+          <div class="sub" id="colDetailSub">—</div>
+        </div>
+      </div>
+      <div id="colDetailSkeleton">
+        <div class="skeleton" style="width:100%;aspect-ratio:1;border-radius:18px;margin-bottom:14px"></div>
+        <div class="skeleton" style="width:60%;height:22px;margin-bottom:10px"></div>
+        <div class="skeleton" style="width:100%;height:120px"></div>
+      </div>
+      <div id="colDetailLoaded" class="hide">
+        <div class="asset-hero" id="colDetailHero">
+          <img id="colDetailImg" class="hide" alt="" />
+          <svg id="colDetailGlyph" class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>
+        </div>
+        <div class="asset-actions">
+          <button class="btn" id="colDetailAssets"><svg class="ic"><use href="#g-grid"/></svg> Your assets</button>
+          <button class="btn ghost" id="colDetailExplorer"><svg class="ic"><use href="#g-external"/></svg> Explorer</button>
+        </div>
+        <div class="card">
+          <div class="seg" id="colDetailSeg">
+            <button class="active" data-tab="overview" type="button">Overview</button>
+            <button data-tab="schemas" type="button">Schemas</button>
+            <button data-tab="templates" type="button">Templates</button>
+          </div>
+          <div id="colDetailOverview" style="margin-top:12px">
+            <div class="attr-grid" id="colDetailOverviewGrid"></div>
+          </div>
+          <div id="colDetailSchemas" class="hide" style="margin-top:12px">
+            <div id="colDetailSchemasList"></div>
+          </div>
+          <div id="colDetailTemplates" class="hide" style="margin-top:12px">
+            <div id="colDetailTemplatesList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="msg hide" id="colDetailMsg"></div>
     </section>
   </main>
 
   <nav>
     <button class="active" data-screen="home"><svg class="ic"><use href="#g-home"/></svg>Overview</button>
-    <button data-screen="inventory"><svg class="ic"><use href="#g-grid"/></svg>Inventory</button>
     <button data-act="portfolio"><svg class="ic"><use href="#g-wallet"/></svg>Portfolio</button>
+    <button data-screen="inventory"><svg class="ic"><use href="#g-grid"/></svg>Inventory</button>
     <button data-screen="stake"><svg class="ic"><use href="#g-stake"/></svg>Resources</button>
     <button data-screen="send"><svg class="ic"><use href="#g-send"/></svg>Send</button>
   </nav>
@@ -738,6 +954,7 @@
     <button id="gateBack" class="gate-back hide" title="Back"><svg class="ic"><use href="#g-x"/></svg></button>
     <div class="tabs">
       <button id="tabUnlock" class="active"><span id="tabUnlockLbl">Unlock</span></button>
+      <button id="tabCreate" class="hide"><span id="tabCreateLbl">New key</span></button>
       <button id="tabImport" class="hide"><span id="tabImportLbl">Import</span></button>
     </div>
     <div class="tab-hint" id="tabHint"></div>
@@ -863,7 +1080,6 @@ function showScreen(name) {
   for (const s of document.querySelectorAll(".screen")) s.classList.toggle("active", s.id === "screen-"+name);
   for (const b of document.querySelectorAll("nav button")) b.classList.toggle("active", b.dataset.screen === name);
   const m = document.querySelector("main"); if (m) m.scrollTop = 0;
-  if (name === "inventory") loadInventory();
 }
 for (const b of document.querySelectorAll("nav button")) b.onclick = () => {
   if (b.dataset.act === "portfolio") { openAccountSheet(); return; }   // Portfolio = bottom-sheet (Layout A), not a screen
@@ -997,7 +1213,7 @@ function syncHeader() {
 async function setActive(name, doSwitch) {
   if (!name) return;
   STATE.active = name;
-  _invAccount = null; // invalidate inventory cache on account switch
+  INV.assets = []; INV.filtered = []; INV.page = 1; // drop previous account's NFT cache on switch
   syncHeader();
   cmd("select", { account: name });   // align engine default-sender on this net (best-effort for watch-only)
   if (doSwitch !== false) showScreen("home");
@@ -1245,19 +1461,23 @@ $("sendReview").onclick = async () => {
    every intent kind (transfer + stake/unstake/buyram/sellram). The engine returns
    intent.{kind, ...view}; we render a headline + decoded rows, then seal it with
    `confirm {id}` (action-agnostic) or dismiss with `cancel {id}`. ── */
-const SIGN_TITLE = { transfer:"Confirm & sign", stake:"Stake CPU/NET", unstake:"Unstake CPU/NET", buyrambytes:"Buy RAM", buyram:"Buy RAM", sellram:"Sell RAM", refund:"Claim refund" };
-const SIGN_VERB  = { transfer:"Seal & Send", stake:"Stake", unstake:"Unstake", buyrambytes:"Buy RAM", buyram:"Buy RAM", sellram:"Sell RAM", refund:"Claim" };
+const SIGN_TITLE = { transfer:"Confirm & sign", transfernft:"Transfer NFT", stake:"Stake CPU/NET", unstake:"Unstake CPU/NET", buyrambytes:"Buy RAM", buyram:"Buy RAM", sellram:"Sell RAM", refund:"Claim refund" };
+const SIGN_VERB  = { transfer:"Seal & Send", transfernft:"Seal Transfer", stake:"Stake", unstake:"Unstake", buyrambytes:"Buy RAM", buyram:"Buy RAM", sellram:"Sell RAM", refund:"Claim" };
 function openSignSheet(intent) {
   const danger = intent.chainKind === "mainnet";
   const net = intent.network || STATE.chain.name;
   const k = intent.kind || "transfer";
   const amt0 = (q) => Number(String(q||"").split(" ")[0] || 0);
+  const assetIds = Array.isArray(intent.asset_ids) ? intent.asset_ids : [];
 
   // headline — the one big thing you're doing
   let headline;
   if (k === "transfer") {
     const [a, ...r] = String(intent.quantity||"").split(" ");
     headline = `${escapeHtml(a)} <small>${escapeHtml(r.join(" ")||intent.coreSymbol||"")}</small>`;
+  } else if (k === "transfernft") {
+    const n = assetIds.length;
+    headline = `${n} <small>NFT${n === 1 ? "" : "s"}</small>`;
   } else if (k === "stake" || k === "unstake") {
     const parts = [];
     if (amt0(intent.cpu) > 0) parts.push(`${escapeHtml(intent.cpu)} CPU`);
@@ -1274,6 +1494,7 @@ function openSignSheet(intent) {
   let rows = "";
   if (actor) rows += kv("Account", escapeHtml(actor));
   if (intent.to) rows += kv("To", escapeHtml(intent.to));
+  if (assetIds.length) rows += kv("Asset IDs", `<span class="mono">${escapeHtml(assetIds.join(", "))}</span>`);
   if (intent.receiver && intent.receiver !== actor) rows += kv("Receiver", escapeHtml(intent.receiver));
   if (intent.contract) rows += kv("Contract", escapeHtml(intent.contract));
   if (intent.memo != null) rows += kv("Memo", intent.memo ? escapeHtml(intent.memo) : `<span class="muted">none</span>`);
@@ -1290,7 +1511,7 @@ function openSignSheet(intent) {
   openSheet(`
     <h3><svg class="ic" style="color:var(--seal)"><use href="#g-seal"/></svg> ${escapeHtml(SIGN_TITLE[k]||"Confirm & sign")}</h3>
     <div class="sh-sub">Decoded by the wallet engine. Nothing is broadcast until you seal it.</div>
-    <div class="sign-amount"><div class="lbl">${k==="transfer"?"You send":"Amount"}</div><div class="a">${headline}</div></div>
+    <div class="sign-amount"><div class="lbl">${k==="transfer"?"You send":(k==="transfernft"?"You transfer":"Amount")}</div><div class="a">${headline}</div></div>
     ${actor?`<div class="sign-arrow"><span class="av sm"></span> ${escapeHtml(actor)}${intent.to?` <svg class="ic"><use href="#g-send"/></svg> ${escapeHtml(intent.to)}`:""}</div>`:""}
     <div style="margin-top:6px">${rows}</div>
     ${intent.note ? `<div class="banner warn" style="margin:12px 0 0"><svg class="ic"><use href="#g-alert"/></svg><span>${escapeHtml(intent.note)}</span></div>` : ""}
@@ -1315,10 +1536,11 @@ function openSignSheet(intent) {
       flash($("signMsg"), `<svg class="ic" style="vertical-align:-3px"><use href="#g-check"/></svg> Sealed on ${escapeHtml(r.result?.network||net)}.<br>${expLink}`, true);
       // reset the form for this action so stale values don't linger into the next one
       if (k === "transfer") { $("sendTo").value=""; $("sendAmt").value=""; $("sendMemo").value=""; }
+      else if (k === "transfernft") { /* asset detail state is refreshed by loadInventory below */ }
       else if (k === "stake" || k === "unstake") { $("cpuAmt").value=""; $("netAmt").value=""; }
       else if (k === "buyrambytes" || k === "buyram" || k === "sellram") { $("ramAmt").value=""; }
       const who = r.result?.from || r.result?.account || r.result?.payer || actor || STATE.active;
-      setTimeout(() => { closeSheet(); if (who) loadAccount(who); showScreen(k==="transfer"?"home":"stake"); }, 1600);
+      setTimeout(() => { closeSheet(); if (who) loadAccount(who); showScreen(k==="transfer"?"home":(k==="transfernft"?"inventory":"stake")); }, 1600);
     } else {
       const stale = /no such sign-intent|expired/i.test(r.msg||"");
       flash($("signMsg"), escapeHtml(r.msg||"broadcast failed") + (stale ? " — close and try again." : ""), false);
@@ -2942,95 +3164,621 @@ function openToolsSheet() {
 }
 
 /* ── Inventory (AtomicAssets NFTs) ── */
+// IPFS gateway fallback chain (matches engine / Sahara's Research Board findings).
+const IPFS_GATEWAYS_PANEL = ["https://ipfs.io/ipfs/", "https://dweb.link/ipfs/"];
 function ipfsUrl(cid) {
   if (!cid || (typeof cid === "object" && cid !== null)) return null;
   const s = String(cid).trim();
   if (s.startsWith("http://") || s.startsWith("https://")) return s;
-  if (s.startsWith("ipfs://")) return "https://gateway.pinata.cloud/ipfs/" + s.slice(7);
-  return "https://gateway.pinata.cloud/ipfs/" + s;
+  const v = s.startsWith("ipfs://") ? s.slice(7) : s;
+  return IPFS_GATEWAYS_PANEL[0] + v;
+}
+function ipfsUrlSet(cid) {
+  if (!cid || (typeof cid === "object" && cid !== null)) return [];
+  const s = String(cid).trim();
+  if (s.startsWith("http://") || s.startsWith("https://")) return [s];
+  const v = s.startsWith("ipfs://") ? s.slice(7) : s;
+  return IPFS_GATEWAYS_PANEL.map((g) => g + v);
+}
+function mediaTag(asset) {
+  const m = asset.media;
+  if (!m || !m.url) return { tag: "img", url: null };
+  if (m.type === "video") return { tag: "video", url: m.url };
+  if (m.type === "audio") return { tag: "audio", url: m.url };
+  if (m.type === "glb") return { tag: "model-viewer", url: m.url };
+  return { tag: "img", url: m.url };
+}
+function bestImageUrl(asset) {
+  const m = asset.media;
+  return (m && (m.type === "image" || m.type === "video" || m.type === "glb") && m.url) ? m.url : (asset.image_url || null);
+}
+function renderMediaHtml(asset, cls) {
+  const url = bestImageUrl(asset);
+  if (!url) return "";
+  const srcset = ipfsUrlSet(asset.image || asset.media?.field ? (asset.immutable?.[asset.media?.field] || asset.image) : "").join(", ");
+  return `<img class="${cls || ""}" src="${escapeHtml(url)}" srcset="${escapeHtml(srcset)}" alt="" loading="lazy"
+    onerror="this.onerror=null;this.src='${escapeHtml(IPFS_GATEWAYS_PANEL[1] + (String(asset.image || asset.media?.field ? (asset.immutable?.[asset.media?.field] || asset.image) : "").replace(/^ipfs:\/\//,'')))}'" />`;
 }
 
-let _invAssets = [];
-let _invAccount = null;
-async function loadInventory(force) {
-  const account = STATE.active;
-  if (!account) {
-    $("invGrid").innerHTML = `<div class="inv-empty"><svg class="ic"><use href="#g-grid"/></svg><div>Select an account to view NFTs.</div></div>`;
+const INV = {
+  assets: [],
+  filtered: [],
+  page: 1,
+  perPage: 50,
+  sort: "recent",
+  view: "grid",
+  search: "",
+  collection: "",
+  schema: "",
+  currentAsset: null,
+  loading: false,
+  tab: "assets",
+  heldCollections: new Set(),
+};
+const COL = {
+  all: [],
+  filtered: [],
+  heldOnly: true,
+  loading: false,
+  current: null,
+  schemas: [],
+  templates: [],
+};
+const SORT_OPTIONS = [
+  { key: "recent", label: "Recent" },
+  { key: "oldest", label: "Oldest" },
+  { key: "name", label: "Name" },
+  { key: "mint", label: "Mint#" },
+];
+
+function stageOf(asset) {
+  const m = asset?.mutable || {};
+  const i = asset?.immutable || {};
+  if (m.stage != null) return `Stage ${m.stage}`;
+  if (m.level != null) return `Lv ${m.level}`;
+  if (i.stage != null) return `Stage ${i.stage}`;
+  if (i.level != null) return `Lv ${i.level}`;
+  return null;
+}
+function qtyOf(asset) {
+  const mint = asset.template_mint != null ? String(asset.template_mint) : null;
+  const max = asset.max_supply != null ? Number(asset.max_supply) : null;
+  if (!mint) return null;
+  const maxStr = max != null && max > 0 ? ` / ${max.toLocaleString()}` : " / ∞";
+  return `#${mint}${maxStr}`;
+}
+function timeAgo(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  const diff = Date.now() - d.getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  return d.toLocaleDateString();
+}
+
+async function loadInventory() {
+  if (INV.loading) return;
+  const name = STATE.active;
+  if (!name) {
+    $("invGrid").innerHTML = "";
+    $("invEmpty").innerHTML = `<svg class="ic"><use href="#g-grid"/></svg><div>Select an account to view NFTs.</div>`;
+    $("invEmpty").classList.remove("hide");
+    $("invCount").innerHTML = `<b>0</b> assets · <b>0</b> collections`;
+    $("invMoreWrap").classList.add("hide");
     return;
   }
-  if (!force && _invAssets.length > 0 && _invAccount === account) return;
-  _invAccount = account;
-  $("invGrid").innerHTML = `<div class="inv-empty"><svg class="ic"><use href="#g-refresh"/></svg><div>Loading NFTs…</div></div>`;
-  const r = await cmd("nftassets", { account, limit: 200 });
+  INV.loading = true;
+  $("invGrid").innerHTML = `<div class="empty center"><svg class="ic"><use href="#g-refresh"/></svg><div>Loading NFTs…</div></div>`;
+  $("invEmpty").classList.add("hide");
+  const r = await cmd("nftassets", { account: name, limit: 1000 });
+  INV.loading = false;
   if (!r.ok) {
-    $("invGrid").innerHTML = `<div class="inv-empty"><svg class="ic"><use href="#g-alert"/></svg><div>${escapeHtml(r.msg || "Could not load NFTs")}</div></div>`;
+    $("invGrid").innerHTML = "";
+    $("invEmpty").innerHTML = `<svg class="ic"><use href="#g-alert"/></svg><div>${escapeHtml(r.msg || "Could not load NFTs.")}</div>`;
+    $("invEmpty").classList.remove("hide");
     return;
   }
-  _invAssets = r.assets || [];
-  populateInvFilters(_invAssets);
-  renderInventory();
+  INV.assets = Array.isArray(r.assets) ? r.assets : [];
+  INV.heldCollections = new Set(INV.assets.map((a) => a.collection));
+  INV.page = 1;
+  applyInventoryFilters();
+  // If collections tab is visible, refresh it too.
+  if (INV.tab === "collections") loadCollections();
 }
 
-function populateInvFilters(assets) {
-  const colSet = new Set(), schSet = new Set();
-  for (const a of assets) { colSet.add(a.collection); schSet.add(a.schema); }
-  const colSel = $("invCollection"), schSel = $("invSchema");
-  const curCol = colSel.value, curSch = schSel.value;
-  colSel.innerHTML = `<option value="">All collections</option>` + [...colSet].sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-  schSel.innerHTML = `<option value="">All schemas</option>` + [...schSet].sort().map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
-  colSel.value = curCol; schSel.value = curSch;
+function applyInventoryFilters() {
+  const s = INV.search.toLowerCase().trim();
+  INV.filtered = INV.assets.filter((a) => {
+    if (INV.collection && a.collection !== INV.collection) return false;
+    if (INV.schema && a.schema !== INV.schema) return false;
+    if (s) {
+      const hay = `${a.name || ""} ${a.template_id || ""} ${a.template_mint || ""} ${a.collection || ""}`.toLowerCase();
+      if (!hay.includes(s)) return false;
+    }
+    return true;
+  });
+  INV.filtered.sort((a, b) => {
+    if (INV.sort === "name") return String(a.name || "").localeCompare(String(b.name || ""));
+    if (INV.sort === "mint") {
+      const ma = Number(a.template_mint) || 0, mb = Number(b.template_mint) || 0;
+      return ma - mb;
+    }
+    const ia = Number(a.asset_id) || 0, ib = Number(b.asset_id) || 0;
+    return INV.sort === "oldest" ? ia - ib : ib - ia;
+  });
+  updateInventoryMeta();
+  renderInventoryGrid();
+  renderInventoryChips();
 }
 
-function renderInventory() {
-  const col = $("invCollection").value, sch = $("invSchema").value;
-  const list = _invAssets.filter(a => (!col || a.collection === col) && (!sch || a.schema === sch));
-  if (list.length === 0) {
-    $("invGrid").innerHTML = `<div class="inv-empty"><svg class="ic"><use href="#g-grid"/></svg><div>No NFTs match the filters.</div></div>`;
-    return;
-  }
-  $("invGrid").innerHTML = list.map(a => {
-    const name = a.immutable?.name || a.immutable?.title || `#${a.asset_id}`;
-    const img = a.immutable?.img || a.immutable?.image || a.immutable?.backimg || a.immutable?.media;
-    const imgUrl = ipfsUrl(img);
-    const mut = Object.entries(a.mutable || {}).slice(0, 2).map(([k, v]) => `${k}: ${v}`).join(" · ");
-    return `
-      <div class="inv-card" data-aid="${escapeHtml(a.asset_id)}">
-        <div class="inv-img">${imgUrl ? `<img src="${escapeHtml(imgUrl)}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<svg class=\\'ic placeholder\\'><use href=\\'#g-grid\\'/></svg>'"` : `<svg class="ic placeholder"><use href="#g-grid"/></svg>`}</div>
-        <div class="inv-meta">
-          <div class="nm">${escapeHtml(name)}</div>
-          <div class="sub"><span>${escapeHtml(a.collection)}</span><span>#${escapeHtml(String(a.template_id))}</span></div>
-          ${mut ? `<div class="mut">${escapeHtml(mut)}</div>` : ""}
-        </div>
-      </div>`;
-  }).join("");
-  for (const c of document.querySelectorAll(".inv-card")) {
-    c.onclick = () => {
-      const asset = _invAssets.find(x => String(x.asset_id) === c.dataset.aid);
-      if (asset) openInvDetail(asset);
+function updateInventoryMeta() {
+  const cols = new Set(INV.filtered.map((a) => a.collection));
+  $("invCount").innerHTML = `<b>${INV.filtered.length}</b> asset${INV.filtered.length === 1 ? "" : "s"} · <b>${cols.size}</b> collection${cols.size === 1 ? "" : "s"}`;
+  const shown = Math.min(INV.filtered.length, INV.page * INV.perPage);
+  $("invMoreWrap").classList.toggle("hide", shown >= INV.filtered.length);
+}
+
+function renderInventoryChips() {
+  const chips = [];
+  if (INV.collection) chips.push({ key: "collection", label: INV.collection });
+  if (INV.schema) chips.push({ key: "schema", label: INV.schema });
+  if (INV.search) chips.push({ key: "search", label: `“${INV.search}”` });
+  const root = $("invChips");
+  if (!chips.length) { root.classList.add("hide"); root.innerHTML = ""; return; }
+  root.classList.remove("hide");
+  root.innerHTML = chips.map((c) =>
+    `<span class="fchip">${escapeHtml(c.label)}<span class="x" data-chip="${c.key}">×</span></span>`
+  ).join("");
+  for (const x of root.querySelectorAll(".x")) {
+    x.onclick = () => {
+      const k = x.dataset.chip;
+      if (k === "collection") { INV.collection = ""; $("invColLbl").textContent = "All"; }
+      if (k === "schema") { INV.schema = ""; $("invSchLbl").textContent = "All"; }
+      if (k === "search") { INV.search = ""; $("invSearch").value = ""; }
+      applyInventoryFilters();
     };
   }
 }
 
-function openInvDetail(a) {
-  const name = a.immutable?.name || a.immutable?.title || `Asset #${a.asset_id}`;
-  const img = a.immutable?.img || a.immutable?.image || a.immutable?.backimg || a.immutable?.media;
-  const imgUrl = ipfsUrl(img);
-  const immProps = Object.entries(a.immutable || {}).map(([k, v]) => ({k, v: String(v)}));
-  const mutProps = Object.entries(a.mutable || {}).map(([k, v]) => ({k, v: String(v)}));
-  const propRows = (props) => props.map(p => `<div class="inv-prop"><div class="k">${escapeHtml(p.k)}</div><div class="v" title="${escapeHtml(p.v)}">${escapeHtml(p.v)}</div></div>`).join("");
-  openSheet(`
-    <div class="inv-detail">
-      <div class="dimg">${imgUrl ? `<img src="${escapeHtml(imgUrl)}" alt="" onerror="this.style.display='none';this.parentElement.innerHTML='<svg class=\\'ic placeholder\\' style=\\'width:64px;height:64px\\'><use href=\\'#g-grid\\'/></svg>'"` : `<svg class="ic placeholder" style="width:64px;height:64px"><use href="#g-grid"/></svg>`}</div>
-      <div class="dname">${escapeHtml(name)}</div>
-      <div class="dsub">Asset ${escapeHtml(a.asset_id)} · ${escapeHtml(a.collection)} · ${escapeHtml(a.schema)} · template #${escapeHtml(String(a.template_id))}</div>
-      ${immProps.length ? `<h2 class="sec">Immutable</h2><div class="inv-props">${propRows(immProps)}</div>` : ""}
-      ${mutProps.length ? `<h2 class="sec">Mutable</h2><div class="inv-props">${propRows(mutProps)}</div>` : ""}
-    </div>
-  `, false);
+function openInventorySelect(kind) {
+  const items = kind === "collection"
+    ? [{ value: "", label: "All collections" }, ...[...new Set(INV.assets.map((a) => a.collection))].sort().map((c) => ({ value: c, label: c }))]
+    : [{ value: "", label: "All schemas" }, ...[...new Set(INV.assets.filter((a) => !INV.collection || a.collection === INV.collection).map((a) => a.schema))].sort().map((c) => ({ value: c, label: c }))];
+  const title = kind === "collection" ? "Collection" : "Schema";
+  const rows = items.map((it) => `
+    <div class="sheet-row ${(kind === "collection" ? INV.collection : INV.schema) === it.value ? "active" : ""}" data-val="${escapeHtml(it.value)}" style="margin-top:8px">
+      <span class="nm"><b>${escapeHtml(it.label)}</b></span>
+      ${(kind === "collection" ? INV.collection : INV.schema) === it.value ? `<svg class="ic ck"><use href="#g-check"/></svg>` : ""}
+    </div>`).join("");
+  openSheet(`<h3>${escapeHtml(title)}</h3><div class="sh-sub">Filter your NFTs</div>${rows}`);
+  for (const row of document.querySelectorAll(".sheet-row[data-val]")) {
+    row.onclick = () => {
+      const v = row.dataset.val;
+      if (kind === "collection") {
+        INV.collection = v;
+        $("invColLbl").textContent = v || "All";
+        INV.schema = "";
+        $("invSchLbl").textContent = "All";
+      } else {
+        INV.schema = v;
+        $("invSchLbl").textContent = v || "All";
+      }
+      closeSheet();
+      applyInventoryFilters();
+    };
+  }
 }
 
-$("invCollection").onchange = renderInventory;
-$("invSchema").onchange = renderInventory;
+function openSortSelect() {
+  const rows = SORT_OPTIONS.map((o) => `
+    <div class="sheet-row ${INV.sort === o.key ? "active" : ""}" data-key="${o.key}" style="margin-top:8px">
+      <span class="nm"><b>${escapeHtml(o.label)}</b></span>
+      ${INV.sort === o.key ? `<svg class="ic ck"><use href="#g-check"/></svg>` : ""}
+    </div>`).join("");
+  openSheet(`<h3>Sort by</h3><div class="sh-sub">Choose the order</div>${rows}`);
+  for (const row of document.querySelectorAll(".sheet-row[data-key]")) {
+    row.onclick = () => { INV.sort = row.dataset.key; $("invSort").textContent = "Sort: " + SORT_OPTIONS.find((x) => x.key === INV.sort).label; closeSheet(); applyInventoryFilters(); };
+  }
+}
+
+function renderInventoryGrid() {
+  $("invGrid").className = "nft-grid" + (INV.view === "list" ? " list" : "");
+  const shown = INV.filtered.slice(0, INV.page * INV.perPage);
+  if (!shown.length) {
+    $("invGrid").innerHTML = "";
+    $("invEmpty").innerHTML = `<svg class="ic"><use href="#g-grid"/></svg><div>No NFTs match the filters.</div>`;
+    $("invEmpty").classList.remove("hide");
+    return;
+  }
+  $("invEmpty").classList.add("hide");
+  $("invGrid").innerHTML = shown.map((a) => {
+    const img = a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.glyph').classList.remove('hide')" />` : "";
+    const stage = stageOf(a);
+    const qty = qtyOf(a);
+    const stageChip = stage ? `<span class="stage"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7z"/></svg>${escapeHtml(stage)}</span>` : "";
+    const qtyChip = qty ? `<span class="qty">${escapeHtml(qty)}</span>` : "";
+    const verified = a.collection_authorized ? `<svg class="ic"><use href="#g-check"/></svg>` : "";
+    return `
+      <article class="nft" role="button" tabindex="0" data-aid="${escapeHtml(a.asset_id)}" title="${escapeHtml(a.name || "Asset")}">
+        <div class="art" style="background:${collectionGradient(a.collection)}">${img}\n          <svg class="glyph hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>${stageChip}${qtyChip}
+        </div>
+        <div class="meta">
+          <div class="nm2">${escapeHtml(a.name || `${a.collection} #${a.asset_id}`)}</div>
+          <div class="col">${verified}${escapeHtml(a.collection)}</div>
+          <div class="tpl">tmpl #${escapeHtml(String(a.template_id || "—"))}</div>
+        </div>
+      </article>`;
+  }).join("");
+  for (const card of $("invGrid").querySelectorAll(".nft")) {
+    card.onclick = () => showAssetDetail(card.dataset.aid);
+    card.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showAssetDetail(card.dataset.aid); } };
+  }
+}
+
+function collectionGradient(name) {
+  let h = 0;
+  for (let i = 0; i < (name || "").length; i++) h = (h + name.charCodeAt(i) * 13) % 360;
+  return `linear-gradient(150deg,hsl(${h},45%,25%),hsl(${(h + 40) % 360},40%,18%))`;
+}
+
+// ── Collections view (Phase B) ──
+function heldCollectionImage(name) {
+  const a = INV.assets.find((x) => x.collection === name && (x.image_url || x.media?.url));
+  return a ? (a.image_url || a.media?.url) : null;
+}
+
+function switchInvTab(tab) {
+  INV.tab = tab;
+  $("invTabAssets").classList.toggle("active", tab === "assets");
+  $("invTabCollections").classList.toggle("active", tab === "collections");
+  $("invAssetsView").classList.toggle("hide", tab !== "assets");
+  $("invCollectionsView").classList.toggle("hide", tab !== "collections");
+  $("invSub").textContent = tab === "assets" ? "Your AtomicAssets NFTs" : "All collections";
+  if (tab === "collections") loadCollections();
+  else loadInventory();
+}
+
+async function loadCollections() {
+  if (COL.loading) return;
+  COL.loading = true;
+  $("colGrid").innerHTML = `<div class="empty center"><svg class="ic"><use href="#g-refresh"/></svg><div>Loading collections…</div></div>`;
+  $("colEmpty").classList.add("hide");
+  const r = await cmd("nftcollections", { limit: 1000 });
+  COL.loading = false;
+  if (!r.ok) {
+    $("colGrid").innerHTML = "";
+    $("colEmpty").innerHTML = `<svg class="ic"><use href="#g-alert"/></svg><div>${escapeHtml(r.msg || "Could not load collections.")}</div>`;
+    $("colEmpty").classList.remove("hide");
+    return;
+  }
+  COL.all = Array.isArray(r.collections) ? r.collections : [];
+  applyCollectionFilters();
+}
+
+function applyCollectionFilters() {
+  const s = $("colSearch").value.toLowerCase().trim();
+  COL.filtered = COL.all.filter((c) => {
+    if (COL.heldOnly && !INV.heldCollections.has(c.collection_name)) return false;
+    if (s) {
+      const hay = `${c.collection_name} ${c.author || ""}`.toLowerCase();
+      if (!hay.includes(s)) return false;
+    }
+    return true;
+  });
+  $("colCount").innerHTML = `<b>${COL.filtered.length}</b> collection${COL.filtered.length === 1 ? "" : "s"}`;
+  renderCollectionGrid();
+}
+
+function renderCollectionGrid() {
+  if (!COL.filtered.length) {
+    $("colGrid").innerHTML = "";
+    $("colEmpty").innerHTML = `<svg class="ic"><use href="#g-grid"/></svg><div>${COL.heldOnly ? "No collections held by this account." : "No collections found."}</div>`;
+    $("colEmpty").classList.remove("hide");
+    return;
+  }
+  $("colEmpty").classList.add("hide");
+  $("colGrid").innerHTML = COL.filtered.map((c) => {
+    const img = heldCollectionImage(c.collection_name);
+    const art = img
+      ? `<img src="${escapeHtml(img)}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.glyph').classList.remove('hide')" />`
+      : "";
+    const fee = c.market_fee != null ? `${(Number(c.market_fee) * 100).toFixed(1)}%` : "—";
+    return `
+      <article class="collection-card" role="button" tabindex="0" data-col="${escapeHtml(c.collection_name)}" title="${escapeHtml(c.collection_name)}">
+        <div class="art" style="background:${collectionGradient(c.collection_name)}">${art}
+          <svg class="glyph ${img ? 'hide' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>
+        </div>
+        <div class="meta">
+          <div class="nm2">${escapeHtml(c.collection_name)}</div>
+          <div class="auth">${escapeHtml(c.author || "—")}</div>
+          <div class="fee">fee ${escapeHtml(fee)}</div>
+        </div>
+      </article>`;
+  }).join("");
+  for (const card of $("colGrid").querySelectorAll(".collection-card")) {
+    card.onclick = () => showCollectionDetail(card.dataset.col);
+    card.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showCollectionDetail(card.dataset.col); } };
+  }
+}
+
+async function showCollectionDetail(name) {
+  const m = document.querySelector("main");
+  COL._scroll = m ? m.scrollTop : 0;
+  showScreen("collection");
+  $("colDetailSkeleton").classList.remove("hide");
+  $("colDetailLoaded").classList.add("hide");
+  $("colDetailMsg").classList.add("hide");
+  $("colDetailName").textContent = name;
+  $("colDetailSub").textContent = name;
+  COL.current = COL.all.find((c) => c.collection_name === name) || { collection_name: name };
+
+  const [sRes, tRes] = await Promise.all([
+    cmd("nftschemas", { collection: name }),
+    cmd("nfttemplates", { collection: name, limit: 100 }),
+  ]);
+  COL.schemas = (sRes.ok && Array.isArray(sRes.schemas)) ? sRes.schemas : [];
+  COL.templates = (tRes.ok && Array.isArray(tRes.templates)) ? tRes.templates : [];
+
+  $("colDetailSkeleton").classList.add("hide");
+  $("colDetailLoaded").classList.remove("hide");
+
+  const c = COL.current;
+  $("colDetailSub").textContent = `by ${c.author || "—"} · fee ${c.market_fee != null ? (Number(c.market_fee) * 100).toFixed(1) + "%" : "—"}`;
+
+  const hero = $("colDetailHero");
+  hero.style.background = collectionGradient(name);
+  const imgUrl = heldCollectionImage(name) || COL.templates.find((t) => t.media?.url)?.media?.url;
+  const img = $("colDetailImg");
+  if (imgUrl) { img.src = imgUrl; img.classList.remove("hide"); $("colDetailGlyph").classList.add("hide"); }
+  else { img.classList.add("hide"); $("colDetailGlyph").classList.remove("hide"); }
+  img.onerror = () => { img.classList.add("hide"); $("colDetailGlyph").classList.remove("hide"); };
+
+  renderCollectionDetailTabs("overview");
+}
+
+function renderCollectionDetailTabs(tab) {
+  const c = COL.current; if (!c) return;
+  for (const b of $("colDetailSeg").querySelectorAll("button")) b.classList.toggle("active", b.dataset.tab === tab);
+  $("colDetailOverview").classList.toggle("hide", tab !== "overview");
+  $("colDetailSchemas").classList.toggle("hide", tab !== "schemas");
+  $("colDetailTemplates").classList.toggle("hide", tab !== "templates");
+
+  if (tab === "overview") {
+    const rows = [
+      ["Collection", c.collection_name],
+      ["Author", c.author || "—"],
+      ["Market fee", c.market_fee != null ? `${(Number(c.market_fee) * 100).toFixed(1)}%` : "—"],
+      ["Authorized", (c.authorized_accounts || []).join(", ") || "—"],
+      ["Notify", (c.notify_accounts || []).join(", ") || "—"],
+      ["Schemas", COL.schemas.length],
+      ["Templates", COL.templates.length],
+    ];
+    $("colDetailOverviewGrid").innerHTML = rows.map(([k, v]) => attrRow(k, v, false)).join("");
+  } else if (tab === "schemas") {
+    if (!COL.schemas.length) { $("colDetailSchemasList").innerHTML = `<div class="muted">No schemas found.</div>`; return; }
+    $("colDetailSchemasList").innerHTML = COL.schemas.map((s) => `
+      <div class="schema-row">
+        <div class="nm">${escapeHtml(s.schema_name)}</div>
+        <div class="fmt">${escapeHtml((s.format || []).map((f) => `${f.name}:${f.type}`).join(", "))}</div>
+      </div>`).join("");
+  } else if (tab === "templates") {
+    if (!COL.templates.length) { $("colDetailTemplatesList").innerHTML = `<div class="muted">No templates found.</div>`; return; }
+    $("colDetailTemplatesList").innerHTML = `<div class="tpl-grid">${COL.templates.map((t) => {
+      const url = t.media?.url;
+      const art = url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" onerror="this.style.display='none'" />` : "";
+      return `
+        <div class="tpl-card">
+          <div class="art" style="background:${collectionGradient(c.collection_name)}">${art}
+            <svg class="glyph ${url ? 'hide' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>
+          </div>
+          <div class="meta">
+            <div class="nm2">${escapeHtml(t.immutable?.name || `Template #${t.template_id}`)}</div>
+            <div class="supply">${escapeHtml(t.issued_supply || "0")} / ${escapeHtml(t.max_supply || "∞")}</div>
+          </div>
+        </div>`;
+    }).join("")}</div>`;
+  }
+}
+
+function backToCollections() {
+  showScreen("inventory");
+  const m = document.querySelector("main");
+  if (m && COL._scroll != null) m.scrollTop = COL._scroll;
+  switchInvTab("collections");
+}
+
+// Pull-to-refresh on the assets view.
+function setupPullRefresh() {
+  const wrap = $("invPullWrap");
+  const hint = $("invPullHint");
+  let startY = 0, pulling = false, lastDy = 0;
+  wrap.addEventListener("touchstart", (e) => {
+    const m = document.querySelector("main");
+    if (m && m.scrollTop <= 0) { startY = e.touches[0].clientY; pulling = true; lastDy = 0; }
+  }, { passive: true });
+  wrap.addEventListener("touchmove", (e) => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0 && dy < 120) {
+      lastDy = dy;
+      wrap.style.transform = `translateY(${dy * 0.4}px)`;
+      hint.classList.toggle("hide", dy < 50);
+    }
+  }, { passive: true });
+  wrap.addEventListener("touchend", async () => {
+    if (!pulling) return;
+    pulling = false;
+    wrap.style.transform = "";
+    hint.classList.add("hide");
+    if (lastDy >= 50) {
+      await cmd("nftcacheclear");
+      loadInventory();
+    }
+    lastDy = 0;
+  });
+}
+
+async function showInvHeldOnly() {
+  COL.heldOnly = !COL.heldOnly;
+  $("colHeldOnly").classList.toggle("on", COL.heldOnly);
+  applyCollectionFilters();
+}
+
+async function showAssetDetail(assetId) {
+  const m = document.querySelector("main");
+  INV._scroll = m ? m.scrollTop : 0;
+  STATE.assetId = assetId;
+  showScreen("asset");
+  $("assetSkeleton").classList.remove("hide");
+  $("assetLoaded").classList.add("hide");
+  $("assetMsg").classList.add("hide");
+  $("assetSub").textContent = `#${assetId}`;
+
+  const r = await cmd("nftasset", { asset_id: assetId });
+  if (!r.ok || !r.asset) {
+    $("assetSkeleton").classList.add("hide");
+    flash($("assetMsg"), escapeHtml(r.msg || "Could not load asset."), false);
+    return;
+  }
+  const a = r.asset;
+  INV.currentAsset = a;
+  $("assetSkeleton").classList.add("hide");
+  $("assetLoaded").classList.remove("hide");
+
+  $("assetName").textContent = a.name || `${a.collection} #${a.asset_id}`;
+  $("assetSub").textContent = `${a.name || "Asset"} · #${a.asset_id}`;
+  $("assetCol").textContent = a.collection;
+  $("assetMint").textContent = a.template_mint ? `#${a.template_mint}` : "—";
+  $("assetMax").textContent = a.max_supply ? `of ${Number(a.max_supply).toLocaleString()}` : (a.issued_supply ? `issued ${Number(a.issued_supply).toLocaleString()}` : "—");
+
+  const hero = $("assetHero");
+  hero.style.background = collectionGradient(a.collection);
+  const img = $("assetImg");
+  if (a.image_url) { img.src = a.image_url; img.classList.remove("hide"); $("assetGlyph").classList.add("hide"); }
+  else { img.classList.add("hide"); $("assetGlyph").classList.remove("hide"); }
+  img.onerror = () => { img.classList.add("hide"); $("assetGlyph").classList.remove("hide"); };
+
+  if (a.rarity) { $("assetRarity").textContent = `◆ ${a.rarity}`; $("assetRarity").classList.remove("hide"); }
+  else $("assetRarity").classList.add("hide");
+
+  renderAssetTabs("data");
+  loadAssetHistory(a);
+}
+
+function renderAssetTabs(tab) {
+  const a = INV.currentAsset; if (!a) return;
+  for (const b of $("assetSeg").querySelectorAll("button")) b.classList.toggle("active", b.dataset.tab === tab);
+  $("assetData").classList.toggle("hide", tab !== "data");
+  $("assetRaw").classList.toggle("hide", tab !== "raw");
+  $("assetHistory").classList.toggle("hide", tab !== "history");
+
+  if (tab === "data") {
+    const mutRows = Object.entries(a.mutable || {}).map(([k, v]) => attrRow(k, v, true)).join("") || `<div class="attr"><span class="k">No mutable data</span><span class="v muted">—</span></div>`;
+    const immRows = Object.entries(a.immutable || {}).map(([k, v]) => attrRow(k, v, false)).join("") || `<div class="attr"><span class="k">No immutable data</span><span class="v muted">—</span></div>`;
+    $("assetMutable").innerHTML = mutRows;
+    $("assetImmutable").innerHTML = immRows;
+  } else if (tab === "raw") {
+    $("assetRawBlock").innerHTML = syntaxJson({ mutable_data: a.mutable, immutable_data: a.immutable, template_id: a.template_id, asset_id: a.asset_id, collection: a.collection, schema: a.schema });
+  }
+}
+
+function attrRow(k, v, mut) {
+  let display = v;
+  if (typeof v === "object" && v !== null) display = JSON.stringify(v);
+  const pen = mut ? `<svg class="pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>` : "";
+  return `<div class="attr ${mut ? "mutrow" : ""}"><span class="k">${escapeHtml(k)}</span><span class="v ${mut ? "mut" : ""}">${escapeHtml(String(display))}${pen}</span></div>`;
+}
+
+function syntaxJson(obj) {
+  const json = JSON.stringify(obj, null, 2);
+  return escapeHtml(json)
+    .replace(/"(mutable_data|immutable_data|template_id|asset_id|collection|schema)"\s*:/g, '<span class="key">"$1"</span>:')
+    .replace(/"([^"]+)"\s*:/g, '<span class="mut">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="str">"$1"</span>')
+    .replace(/: (-?\d+(?:\.\d+)?)/g, ': <span class="num">$1</span>');
+}
+
+async function loadAssetHistory(a) {
+  const list = $("assetHistList");
+  list.innerHTML = `<div class="hit"><div class="hbody"><div class="t">Loading history…</div></div></div>`;
+  const r = await cmd("nfthistory", { asset_id: a.asset_id, owner: a.owner || STATE.active });
+  if (!r.ok) {
+    list.innerHTML = `<div class="hit"><div class="hbody"><div class="t">History unavailable</div><div class="s">${escapeHtml(r.msg || "")}</div></div></div>`;
+    return;
+  }
+  const events = Array.isArray(r.events) ? r.events : [];
+  if (!events.length) {
+    list.innerHTML = `<div class="hit"><div class="hbody"><div class="t">No history yet</div></div></div>`;
+    return;
+  }
+  list.innerHTML = events.map((e) => {
+    const icon = e.type === "mint" ? "g-stake" : e.type === "in" ? "g-receive" : e.type === "out" ? "g-send" : "g-activity";
+    const cls = e.type === "mint" ? "mint" : e.type === "in" ? "in" : e.type === "out" ? "out" : "";
+    const tx = e.txId ? `<span class="mono tx-link" data-url="${escapeHtml(e.explorer || "")}" tabindex="0" role="link">${escapeHtml(e.txId.slice(0, 6))}…${escapeHtml(e.txId.slice(-4))}</span>` : "";
+    return `
+      <div class="hit">
+        <span class="hic ${cls}"><svg class="ic"><use href="#${icon}"/></svg></span>
+        <div class="hbody"><div class="t">${escapeHtml(e.title)}${e.detail ? ` · ${escapeHtml(e.detail)}` : ""}</div><div class="s">${tx}</div></div>
+        <div class="hwhen">${escapeHtml(timeAgo(e.time))}</div>
+      </div>`;
+  }).join("");
+  list.querySelectorAll(".tx-link").forEach((el) => {
+    const url = el.dataset.url;
+    el.onclick = () => { if (url) openExt(url); };
+    el.onkeydown = (e) => { if ((e.key === "Enter" || e.key === " ") && url) { e.preventDefault(); openExt(url); } };
+  });
+}
+
+async function startAssetTransfer() {
+  const a = INV.currentAsset; if (!a) return;
+  if (!STATE.active) { flash($("assetMsg"), "Pick an account first.", false); return; }
+  if (!STATE.unlocked) { flash($("assetMsg"), "Unlock the wallet to transfer.", false); $("gate").classList.remove("hide"); return; }
+  const to = prompt(`Transfer "${a.name || a.asset_id}" to which account?`);
+  if (!to) return;
+  if (!/^[a-z1-5.]{1,12}$/.test(to)) { flash($("assetMsg"), "That doesn't look like a valid Antelope account name.", false); return; }
+  const btn = $("assetTransfer"); btn.disabled = true;
+  const r = await cmd("transfernft", { from: STATE.active, to, asset_ids: [a.asset_id] });
+  btn.disabled = false;
+  if (r.ok && r.intent) openSignSheet(r.intent);
+  else flash($("assetMsg"), escapeHtml(r.msg || "Could not prepare transfer."), false);
+}
+
+function backToInventory() {
+  showScreen("inventory");
+  const m = document.querySelector("main");
+  if (m && INV._scroll != null) m.scrollTop = INV._scroll;
+}
+
+$("invSearch").addEventListener("input", () => { INV.search = $("invSearch").value; applyInventoryFilters(); });
+$("invColPick").onclick = () => openInventorySelect("collection");
+$("invSchPick").onclick = () => openInventorySelect("schema");
+$("invSort").onclick = openSortSelect;
+$("invViewGrid").onclick = () => { INV.view = "grid"; $("invViewGrid").classList.add("on"); $("invViewList").classList.remove("on"); renderInventoryGrid(); };
+$("invViewList").onclick = () => { INV.view = "list"; $("invViewGrid").classList.remove("on"); $("invViewList").classList.add("on"); renderInventoryGrid(); };
+$("invMore").onclick = () => { INV.page++; updateInventoryMeta(); renderInventoryGrid(); };
+$("assetBack").onclick = backToInventory;
+$("assetBack").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") backToInventory(); };
+for (const b of $("assetSeg").querySelectorAll("button")) b.onclick = () => renderAssetTabs(b.dataset.tab);
+$("assetTransfer").onclick = startAssetTransfer;
+$("assetExplorer").onclick = () => {
+  const a = INV.currentAsset; if (!a) return;
+  const url = `${STATE.chain.explorerTx ? STATE.chain.explorerTx.replace("transaction/", "") : "https://waxblock.io/"}account/atomicassets?tab=nfts`;
+  openExt(url);
+};
+
+const _origShowScreen = showScreen;
+showScreen = function(name) {
+  _origShowScreen(name);
+  if (name === "inventory") loadInventory();
+};
+
 
 async function initBio() {
   try { if (!window.PublicKeyCredential) return;
