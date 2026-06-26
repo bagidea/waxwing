@@ -2943,9 +2943,11 @@ function openToolsSheet() {
 
 /* ── Inventory (AtomicAssets NFTs) ── */
 function ipfsUrl(cid) {
-  if (!cid) return null;
-  if (cid.startsWith("http://") || cid.startsWith("https://") || cid.startsWith("ipfs://")) return cid;
-  return `https://ipfs.io/ipfs/${cid}`;
+  if (!cid || (typeof cid === "object" && cid !== null)) return null;
+  const s = String(cid).trim();
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  if (s.startsWith("ipfs://")) return "https://gateway.pinata.cloud/ipfs/" + s.slice(7);
+  return "https://gateway.pinata.cloud/ipfs/" + s;
 }
 
 let _invAssets = [];
