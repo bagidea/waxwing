@@ -199,6 +199,135 @@ async function rpc(chain, endpoint, body, _retried) {
   return json;
 }
 
+// ── AtomicAssets NFT deserialization ─────────────────────────────────
+// The AtomicAssets contract stores immutable/mutable data as a packed byte
+// vector. The schema's `format` array is the ABI: each present field is
+// prefixed with a varint identifier = format_line_index + RESERVED (4).
+// Decoding mirrors the C++ code in atomicdata.hpp exactly.
+const AA_RESERVED = 4;
+const AA_CACHE_TTL_MS = 30 * 1000;
+
+function aaReadVarint(bytes, posRef) {
+  let number = 0;
+  let multiplier = 1;
+  while (true) {
+    if (posRef.pos >= bytes.length) throw new Error("Read past end of AtomicAssets buffer");
+    const b = bytes[posRef.pos++];
+    if (b >= 128) {
+      number += (b - 128) * multiplier;
+      multiplier *= 128;
+    } else {
+      number += b * multiplier;
+      return number;
+    }
+  }
+}
+
+function aaReadFixedUint(bytes, n, posRef) {
+  let v = 0;
+  for (let i = 0; i < n; i++) v += bytes[posRef.pos++] * Math.pow(256, i);
+  return v;
+}
+
+function aaReadFixedInt(bytes, n, posRef) {
+  let v = aaReadFixedUint(bytes, n, posRef);
+  const max = Math.pow(256, n);
+  if (v >= max / 2) v -= max;
+  return v;
+}
+
+function aaReadZigzag(bytes, posRef) {
+  const raw = aaReadVarint(bytes, posRef);
+  return raw % 2 === 0 ? raw / 2 : -Math.floor(raw / 2) - 1;
+}
+
+function aaReadString(bytes, posRef) {
+  const len = aaReadVarint(bytes, posRef);
+  if (posRef.pos + len > bytes.length) throw new Error("AtomicAssets string overruns buffer");
+  const slice = bytes.slice(posRef.pos, posRef.pos + len);
+  posRef.pos += len;
+  return Buffer.from(slice).toString("utf8");
+}
+
+function aaReadAttribute(bytes, type, posRef) {
+  const base = type.replace(/\[\]$/, "");
+  const isArray = type.endsWith("[]");
+  const readScalar = () => {
+    switch (base) {
+      case "int8": return aaReadZigzag(bytes, posRef);
+      case "int16": return aaReadZigzag(bytes, posRef);
+      case "int32": return aaReadZigzag(bytes, posRef);
+      case "int64": return aaReadZigzag(bytes, posRef);
+      case "uint8": return aaReadVarint(bytes, posRef);
+      case "uint16": return aaReadVarint(bytes, posRef);
+      case "uint32": return aaReadVarint(bytes, posRef);
+      case "uint64": return aaReadVarint(bytes, posRef);
+      case "fixed8": case "byte": return aaReadFixedInt(bytes, 1, posRef);
+      case "fixed16": return aaReadFixedInt(bytes, 2, posRef);
+      case "fixed32": return aaReadFixedInt(bytes, 4, posRef);
+      case "fixed64": return aaReadFixedInt(bytes, 8, posRef);
+      case "float": {
+        const arr = new Uint8Array(4);
+        for (let i = 0; i < 4; i++) arr[i] = bytes[posRef.pos++];
+        return new DataView(arr.buffer).getFloat32(0, true);
+      }
+      case "double": {
+        const arr = new Uint8Array(8);
+        for (let i = 0; i < 8; i++) arr[i] = bytes[posRef.pos++];
+        return new DataView(arr.buffer).getFloat64(0, true);
+      }
+      case "string": case "image": case "ipfs": return aaReadString(bytes, posRef);
+      case "bool": return bytes[posRef.pos++] !== 0;
+      default: throw new Error(`unsupported AtomicAssets type "${base}"`);
+    }
+  };
+  if (isArray) {
+    const count = aaReadVarint(bytes, posRef);
+    const out = [];
+    for (let i = 0; i < count; i++) out.push(readScalar());
+    return out;
+  }
+  return readScalar();
+}
+
+function aaBytes(input) {
+  if (Array.isArray(input)) return input;
+  if (typeof input === "string" && input.length > 0) {
+    const hex = input.startsWith("0x") ? input.slice(2) : input;
+    if (/^[0-9a-fA-F]*$/.test(hex)) {
+      const out = [];
+      for (let i = 0; i < hex.length; i += 2) out.push(parseInt(hex.substr(i, 2), 16));
+      return out;
+    }
+  }
+  return [];
+}
+
+function deserializeAtomicData(input, format) {
+  const bytes = aaBytes(input);
+  if (bytes.length === 0) return {};
+  const posRef = { pos: 0 };
+  const result = {};
+  while (posRef.pos < bytes.length) {
+    const identifier = aaReadVarint(bytes, posRef);
+    const idx = identifier - AA_RESERVED;
+    if (idx < 0 || idx >= format.length) throw new Error(`AtomicAssets identifier ${identifier} out of range`);
+    const line = format[idx];
+    result[line.name] = aaReadAttribute(bytes, line.type, posRef);
+  }
+  return result;
+}
+
+// In-memory cache for AtomicAssets schemas and templates. TTL = 30s, never disk.
+const _aaCache = new Map();
+function aaCacheGet(key) {
+  const entry = _aaCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > AA_CACHE_TTL_MS) { _aaCache.delete(key); return null; }
+  return entry.data;
+}
+function aaCacheSet(key, data) { _aaCache.set(key, { data, ts: Date.now() }); }
+
 async function chainInfo(chain) {
   const info = await rpc(chain, "get_info");
   return {
@@ -409,6 +538,266 @@ function assertAccountName(name, field = "account") {
   return s;
 }
 
+// ── AtomicAssets NFT inventory (Phase A) ─────────────────────────────
+// Read + decode an account's assets directly from the AtomicAssets
+// contract. Pagination follows get_table_rows next_key. Filters are
+// applied client-side (the chain table has no usable secondary index for
+// collection/schema). Schema/template metadata is cached in memory for
+// 30s only — never written to disk (privacy decision).
+async function getAtomicAssets(chain, account, options = {}) {
+  const limit = Math.min(Math.max(parseInt(options.limit, 10) || 100, 1), 1000);
+  const collectionFilter = options.collection ? String(options.collection).trim() : null;
+  const schemaFilter = options.schema ? String(options.schema).trim() : null;
+  const templateFilter = options.template_id != null ? String(options.template_id) : null;
+
+  const assets = [];
+  let next_key = null;
+  do {
+    const body = { code: "atomicassets", scope: account, table: "assets", json: true, limit: Math.min(limit - assets.length, 100) };
+    if (next_key != null) body.lower_bound = next_key;
+    const res = await rpc(chain, "get_table_rows", body);
+    const rows = Array.isArray(res.rows) ? res.rows : [];
+    for (const row of rows) {
+      if (collectionFilter && row.collection_name !== collectionFilter) continue;
+      if (schemaFilter && row.schema_name !== schemaFilter) continue;
+      if (templateFilter && String(row.template_id) !== templateFilter) continue;
+      assets.push(row);
+      if (assets.length >= limit) break;
+    }
+    next_key = res.more && res.next_key != null ? res.next_key : null;
+  } while (next_key != null && assets.length < limit);
+
+  // Resolve schemas + templates (with TTL 30s in-memory cache)
+  const schemaNeeded = new Map();
+  const templateNeeded = new Map();
+  for (const a of assets) {
+    const sKey = `${chain.id}:${a.collection_name}:${a.schema_name}`;
+    if (!aaCacheGet(sKey)) schemaNeeded.set(sKey, { collection: a.collection_name, schema_name: a.schema_name });
+    if (a.template_id != null && a.template_id !== -1) {
+      const tKey = `${chain.id}:${a.collection_name}:${a.template_id}`;
+      if (!aaCacheGet(tKey)) templateNeeded.set(tKey, { collection: a.collection_name, template_id: a.template_id });
+    }
+  }
+
+  // Batch fetch schemas: one call per unique collection+schema
+  for (const [key, { collection, schema_name }] of schemaNeeded) {
+    try {
+      const res = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: collection, table: "schemas", lower_bound: schema_name, upper_bound: schema_name, json: true, limit: 1 });
+      const row = (res.rows || [])[0];
+      if (row && row.schema_name === schema_name) aaCacheSet(key, row.format || []);
+    } catch { /* best effort — leave schema empty */ }
+  }
+
+  // Batch fetch templates: one call per unique template
+  for (const [key, { collection, template_id }] of templateNeeded) {
+    try {
+      const res = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: collection, table: "templates", lower_bound: template_id, upper_bound: template_id, json: true, limit: 1 });
+      const row = (res.rows || [])[0];
+      if (row && row.template_id === template_id) aaCacheSet(key, row);
+    } catch { /* best effort */ }
+  }
+
+  // Resolve collections (authorized flag) for every asset collection
+  const collectionsNeeded = new Set();
+  for (const a of assets) collectionsNeeded.add(a.collection_name);
+  const collectionMap = new Map();
+  for (const colName of collectionsNeeded) {
+    const key = `${chain.id}:collection:${colName}`;
+    let col = aaCacheGet(key);
+    if (!col) {
+      try {
+        const res = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: "atomicassets", table: "collections", lower_bound: colName, upper_bound: colName, json: true, limit: 1 });
+        col = (res.rows || [])[0];
+        if (col) aaCacheSet(key, col);
+      } catch { /* best effort */ }
+    }
+    if (col) collectionMap.set(colName, col);
+  }
+
+  // Decode each asset
+  const decoded = assets.map((a) => {
+    const sKey = `${chain.id}:${a.collection_name}:${a.schema_name}`;
+    const format = aaCacheGet(sKey) || [];
+    const tKey = `${chain.id}:${a.collection_name}:${a.template_id}`;
+    const template = (a.template_id != null && a.template_id !== -1) ? (aaCacheGet(tKey) || null) : null;
+
+    let immutable = deserializeAtomicData(a.immutable_serialized_data, format);
+    const mutable = deserializeAtomicData(a.mutable_serialized_data, format);
+
+    // Template immutable data is the default; asset immutable overrides it
+    let templateImmutable = {};
+    if (template) {
+      templateImmutable = deserializeAtomicData(template.immutable_serialized_data, format);
+      immutable = { ...templateImmutable, ...immutable };
+    }
+
+    const col = collectionMap.get(a.collection_name);
+    const name = immutable.name || templateImmutable.name || `${a.collection_name} #${a.asset_id}`;
+    const image = immutable.img || templateImmutable.img || null;
+
+    return {
+      asset_id: String(a.asset_id),
+      template_mint: a.template_mint != null ? String(a.template_mint) : null,
+      collection: a.collection_name,
+      schema: a.schema_name,
+      template_id: a.template_id,
+      immutable,
+      mutable,
+      name,
+      image,
+      image_url: image ? ipfsUrl(image) : null,
+      video: immutable.video || templateImmutable.video || null,
+      rarity: immutable.rarity || templateImmutable.rarity || null,
+      max_supply: template ? (template.max_supply != null ? String(template.max_supply) : null) : null,
+      issued_supply: template ? (template.issued_supply != null ? String(template.issued_supply) : null) : null,
+      collection_authorized: col ? Array.isArray(col.authorized_accounts) && col.authorized_accounts.includes("atomicassets") : false,
+    };
+  });
+
+  return { account, network: chain.id, count: decoded.length, assets: decoded };
+}
+
+// IPFS gateway used for AtomicAssets image/video CIDs. Keep it public + read-only.
+const IPFS_GATEWAY = "https://gateway.pinata.cloud/ipfs/";
+function ipfsUrl(cid) {
+  if (!cid) return null;
+  const s = String(cid).trim();
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  if (s.startsWith("ipfs://")) return IPFS_GATEWAY + s.slice(7);
+  return IPFS_GATEWAY + s;
+}
+
+// Fetch a single AtomicAssets asset by asset_id, decoded.
+async function getAtomicAsset(chain, assetId) {
+  if (assetId == null) throw new Error("asset_id required");
+  const res = await rpc(chain, "get_table_rows", {
+    code: "atomicassets", scope: "atomicassets", table: "assets",
+    lower_bound: assetId, upper_bound: assetId, json: true, limit: 1,
+  });
+  const row = (res.rows || [])[0];
+  if (!row || String(row.asset_id) !== String(assetId)) throw new Error(`asset ${assetId} not found`);
+
+  const sKey = `${chain.id}:${row.collection_name}:${row.schema_name}`;
+  let format = aaCacheGet(sKey);
+  if (!format) {
+    try {
+      const sres = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: row.collection_name, table: "schemas", lower_bound: row.schema_name, upper_bound: row.schema_name, json: true, limit: 1 });
+      const srow = (sres.rows || [])[0];
+      format = (srow && srow.schema_name === row.schema_name) ? (srow.format || []) : [];
+      aaCacheSet(sKey, format);
+    } catch { format = []; }
+  }
+
+  const tKey = `${chain.id}:${row.collection_name}:${row.template_id}`;
+  let template = null;
+  if (row.template_id != null && row.template_id !== -1) {
+    template = aaCacheGet(tKey);
+    if (!template) {
+      try {
+        const tres = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: row.collection_name, table: "templates", lower_bound: row.template_id, upper_bound: row.template_id, json: true, limit: 1 });
+        const trow = (tres.rows || [])[0];
+        if (trow && trow.template_id === row.template_id) { template = trow; aaCacheSet(tKey, template); }
+      } catch {}
+    }
+  }
+
+  const cKey = `${chain.id}:collection:${row.collection_name}`;
+  let collection = aaCacheGet(cKey);
+  if (!collection) {
+    try {
+      const cres = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: "atomicassets", table: "collections", lower_bound: row.collection_name, upper_bound: row.collection_name, json: true, limit: 1 });
+      collection = (cres.rows || [])[0];
+      if (collection) aaCacheSet(cKey, collection);
+    } catch {}
+  }
+
+  let immutable = deserializeAtomicData(row.immutable_serialized_data, format);
+  const mutable = deserializeAtomicData(row.mutable_serialized_data, format);
+  let templateImmutable = {};
+  if (template) {
+    templateImmutable = deserializeAtomicData(template.immutable_serialized_data, format);
+    immutable = { ...templateImmutable, ...immutable };
+  }
+
+  const name = immutable.name || templateImmutable.name || `${row.collection_name} #${row.asset_id}`;
+  const image = immutable.img || templateImmutable.img || null;
+
+  return {
+    asset_id: String(row.asset_id),
+    template_mint: row.template_mint != null ? String(row.template_mint) : null,
+    collection: row.collection_name,
+    schema: row.schema_name,
+    template_id: row.template_id,
+    owner: row.owner,
+    immutable,
+    mutable,
+    name,
+    image,
+    image_url: image ? ipfsUrl(image) : null,
+    video: immutable.video || templateImmutable.video || null,
+    rarity: immutable.rarity || templateImmutable.rarity || null,
+    max_supply: template ? (template.max_supply != null ? String(template.max_supply) : null) : null,
+    issued_supply: template ? (template.issued_supply != null ? String(template.issued_supply) : null) : null,
+    collection_authorized: collection ? Array.isArray(collection.authorized_accounts) && collection.authorized_accounts.includes("atomicassets") : false,
+  };
+}
+
+// Fetch AtomicAssets action history for one asset_id via Hyperion v2.
+// Returns mint/transfer/setassetdata/burn events with actor + txId.
+async function getAtomicAssetHistory(chain, assetId, ownerHint) {
+  if (assetId == null) throw new Error("asset_id required");
+  const owner = ownerHint || null;
+  const url = `${chain.history}/v2/history/get_actions?account=atomicassets&filter=atomicassets:transfer,atomicassets:mintasset,atomicassets:setassetdata,atomicassets:burnasset&limit=200&sort=desc`;
+  let res;
+  try { res = await fetch(url, { headers: { connection: "close" } }); }
+  catch (e) { throw new Error(`history endpoint unreachable: ${e?.cause?.code || e.message}`); }
+  if (!res.ok) throw new Error(`history HTTP ${res.status}`);
+  const json = await res.json();
+  const acts = json.simple_actions || json.actions || [];
+  const targetId = String(assetId);
+
+  const events = [];
+  for (const x of acts) {
+    const data = x.data || x.act?.data || {};
+    const ids = Array.isArray(data.asset_ids) ? data.asset_ids.map(String) : [];
+    const singleId = data.asset_id != null ? String(data.asset_id) : null;
+    if (!ids.includes(targetId) && singleId !== targetId) continue;
+
+    const action = x.action || x.act?.name || "";
+    const txId = x.trx_id || x.transaction_id;
+    const time = x.timestamp || x["@timestamp"] || x.block_time;
+    const actor = data.authorization?.[0]?.actor || data.minter || data.new_owner || data.owner || "";
+    let type = "update", title = "Updated", from = null, to = null, detail = "";
+
+    if (action === "mintasset") {
+      type = "mint"; title = "Minted"; detail = `by ${actor}`;
+    } else if (action === "transfer") {
+      type = data.from === data.to ? "update" : "transfer";
+      if (data.from && data.to) {
+        from = data.from; to = data.to;
+        if (owner && data.from === owner) { title = "Sent"; detail = `to ${data.to}`; }
+        else if (owner && data.to === owner) { title = "Received"; detail = `from ${data.from}`; }
+        else { title = "Transferred"; detail = `${data.from} → ${data.to}`; }
+      } else {
+        title = "Transferred"; detail = "";
+      }
+    } else if (action === "setassetdata") {
+      type = "update"; title = "Updated";
+      const keys = Object.keys(data.mutable_data || {});
+      detail = keys.length ? keys.join(", ") : "";
+    } else if (action === "burnasset") {
+      type = "out"; title = "Burned"; detail = `by ${actor}`;
+    }
+
+    events.push({
+      type, title, action, actor, from, to, detail,
+      txId, time,
+      explorer: txId ? explorerTxUrl(chain.id, txId).primary : null,
+    });
+  }
+  return { asset_id: targetId, network: chain.id, count: events.length, events };
+}
+
 // ── Keystore (encrypted at rest; accounts SCOPED PER NETWORK) ────────
 // Store schema v4 — ONE wallet-level password, accounts bucketed per network:
 //   {
@@ -586,7 +975,7 @@ module.exports = (ctx) => {
   //   • Subsequent create/import → verify password MATCHES before encrypting.
   //   • unlock → fast-check verifier before expensive per-key GCM decrypt.
   //   • v2/v3 wallets are auto-migrated on load (per-bucket verifier → top-level).
-  function verifyWalletPassword(store, password) {
+  function ensureWalletPassword(store, password) {
     if (store.passwordVerifier) {
       // Verifier exists — must match
       if (!ks.verifyPassword(password, store.passwordVerifier)) {
@@ -606,32 +995,22 @@ module.exports = (ctx) => {
         if (e.message === "bad password") throw new Error("password does not match the existing keys — this wallet was created with a different password");
         throw e; // structural corruption
       }
-      // Password correct — upgrade silently (create verifier so future calls use fast path)
+      // Password correct — upgrade silently
       store.passwordVerifier = ks.createVerifier(password);
       return;
     }
-    // No verifier and no accounts — caller should use setInitialWalletPassword
-    throw new Error("INTERNAL: verifyWalletPassword called on empty store — caller should use setInitialWalletPassword instead. This is a bug.");
-  }
-
-  // ⛔ FOOTGUN FIX v0.5.2 — SET initial password ONLY on a CONFIRMED empty store.
-  function setInitialWalletPassword(store, password) {
-    if (!password) throw new Error("password required");
-    // HARD GUARD: refuse to overwrite an existing verifier
-    if (store.passwordVerifier) {
-      throw new Error("INTERNAL: wallet already has a password verifier — cannot set initial password. This is a bug.");
-    }
-    // HARD GUARD: refuse to set initial password when accounts exist
-    if (hasAnyAccounts(store)) {
-      throw new Error("INTERNAL: wallet already has keys — cannot set initial password. This is a bug.");
-    }
-    // DEFENSE-IN-DEPTH: scan raw byNet for any non-empty bucket
-    for (const [, b] of Object.entries(store.byNet || {})) {
-      if (b && Array.isArray(b.accounts) && b.accounts.length > 0) {
-        throw new Error("INTERNAL: wallet has accounts in byNet but hasAnyAccounts returned false. The keystore may be corrupted.");
-      }
-    }
-    // ── Production guard ──
+    // First key ever — set the wallet password.
+    //
+    // ⛔ PRODUCTION GUARD: without WAXWING_KEYSTORE_PATH set, any create/import
+    // hitting an empty store via curl/headless will SET the wallet password →
+    // contaminates the real keystore (the exact bug that locked CEO out).
+    //
+    // Two-tier guard:
+    //   (A) SOFT — always logs a warning to the daemon console.
+    //   (B) HARD — if WAXWING_HARDEN_KEYSTORE=1 is set on the daemon process,
+    //       REJECTS the operation outright. The CEO enables this once to
+    //       permanently prevent accidental overwrites from curl/headless.
+    //   Both guards are skipped when WAXWING_KEYSTORE_PATH is set (test isolation).
     if (!process.env.WAXWING_KEYSTORE_PATH) {
       console.warn("waxwing: creating wallet password verifier on the default keystore. If this is a headless test, set WAXWING_KEYSTORE_PATH to isolate from the user's real keystore.");
       if (process.env.WAXWING_HARDEN_KEYSTORE === "1") {
@@ -660,12 +1039,7 @@ module.exports = (ctx) => {
     const chain = resolveNet(netSel);
     if (account) assertAccountName(account);
     const store = loadStore(FILE);
-    // FOOTGUN FIX v0.5.2: explicit routing — verify existing password OR set initial
-    if (hasAnyAccounts(store) || store.passwordVerifier) {
-      verifyWalletPassword(store, password);
-    } else {
-      setInitialWalletPassword(store, password);
-    }
+    ensureWalletPassword(store, password);
     const b = bucketOf(store, chain.id);
     const { PrivateKey } = await wharf();
     const priv = PrivateKey.generate("K1");
@@ -754,11 +1128,7 @@ module.exports = (ctx) => {
     const store = loadStore(FILE);
     const b = bucketOf(store, chain.id);
     if (b.accounts.some((a) => a.publicKey === pub)) throw new Error(`this key is already in the keystore on ${chain.name}`);
-    if (hasAnyAccounts(store) || store.passwordVerifier) {
-      verifyWalletPassword(store, password);
-    } else {
-      setInitialWalletPassword(store, password);
-    }
+    ensureWalletPassword(store, password);
     const rec = ks.encrypt(priv.toString(), password);
 
     // Auto-resolve: look up accounts controlled by this public key
@@ -1148,6 +1518,34 @@ module.exports = (ctx) => {
     });
   }
 
+  // Build a sign-intent for transferring one or more AtomicAssets NFTs.
+  // This shares the same confirm gate as token transfers — the amber seal only
+  // appears when the user taps Sign on the intent sheet.
+  async function transferNFT(params) {
+    const p = typeof params === "object" ? params : {};
+    const chain = resolveNet(p.network);
+    if (p.to == null || p.to === "") throw new Error("to (recipient) is required");
+    const toName = assertAccountName(p.to, "recipient");
+    let assetIds = p.asset_ids || p.assetIds || p.assets || p.asset_id;
+    if (!Array.isArray(assetIds)) assetIds = [assetIds];
+    assetIds = assetIds.map(String).filter(Boolean);
+    if (!assetIds.length) throw new Error("at least one asset_id is required");
+
+    const store = loadStore(FILE);
+    const { rec, actor: fromName, permission } = resolveSigner(store, chain, p.from);
+    const action = {
+      account: "atomicassets", name: "transfer",
+      authorization: [{ actor: fromName, permission }],
+      data: { from: fromName, to: toName, asset_ids: assetIds, memo: p.memo != null ? String(p.memo) : "" },
+    };
+    return registerIntent({
+      kind: "transfernft", actor: fromName, permission, publicKey: rec.publicKey,
+      networkId: chain.id, actions: [action],
+      view: { from: fromName, to: toName, asset_ids: assetIds, memo: p.memo || "" },
+      result: { kind: "transfernft", from: fromName, to: toName, asset_ids: assetIds, memo: p.memo || "" },
+    });
+  }
+
   // ── Resource ops (eosio system contract) — all gated like `send` ─────
   // delegatebw / undelegatebw / buyram / buyrambytes / sellram. Each builds a
   // sign-intent (NO immediate broadcast) so it inherits the same single-use,
@@ -1328,12 +1726,9 @@ module.exports = (ctx) => {
       // When unlocked, the frontend may send no password — use the in-memory one.
       if (!p.password && _vaultPassword) p.password = _vaultPassword;
       if (!p.password) throw new Error("password required to encrypt the new account's key");
-      // Enforce one-password-per-wallet: verify existing password OR set initial
-      if (hasAnyAccounts(store) || store.passwordVerifier) {
-        verifyWalletPassword(store, p.password);
-      } else {
-        setInitialWalletPassword(store, p.password);
-      }
+      // Enforce one-password-per-wallet: the new key must be encrypted with the
+      // wallet's password (or set it if this is the first key).
+      ensureWalletPassword(store, p.password);
       const np = PrivateKey.generate("K1");
       pub = np.toPublic().toString();
       newRec = { label: name, account: name, permission: "active", publicKey: pub, ...ks.encrypt(np.toString(), p.password), createdAt: new Date().toISOString() };
@@ -1474,6 +1869,39 @@ module.exports = (ctx) => {
           const list = await keyAccounts(net, pk);
           return reply({ ok: true, network: net.id, publicKey: pk, accountNames: list, count: list.length });
         }
+
+        // ── NFT Inventory (Phase A) ───────────────────────────────────
+        case "nftassets": {
+          const net = resolveNet(a.network);
+          const account = a.account || parts[0];
+          if (!account) return reply({ ok: false, msg: "account name required" });
+          assertAccountName(account, "account");
+          const result = await getAtomicAssets(net, account, {
+            collection: a.collection, schema: a.schema, template_id: a.template_id != null ? a.template_id : a.template,
+            limit: a.limit,
+          });
+          return reply({ ok: true, ...result });
+        }
+
+        case "nftasset": {
+          const net = resolveNet(a.network);
+          const assetId = a.asset_id || a.assetId || parts[0];
+          if (assetId == null) return reply({ ok: false, msg: "asset_id required" });
+          const asset = await getAtomicAsset(net, assetId);
+          return reply({ ok: true, network: net.id, asset });
+        }
+
+        case "nfthistory": {
+          const net = resolveNet(a.network);
+          const assetId = a.asset_id || a.assetId || parts[0];
+          const owner = a.owner || parts[1] || null;
+          if (assetId == null) return reply({ ok: false, msg: "asset_id required" });
+          const result = await getAtomicAssetHistory(net, assetId, owner);
+          return reply({ ok: true, ...result });
+        }
+
+        case "transfernft": return reply({ ok: true, ...(await transferNFT(a)) });
+
         case "newaccount": return reply({ ok: true, result: await newAccount(a) });
 
         // ── Tools (Anchor-style utilities) ─────────────────────────────

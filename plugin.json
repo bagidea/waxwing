@@ -1,8 +1,8 @@
 {
   "id": "wax-wallet",
   "name": "🪙 waxwing",
-  "version": "0.5.6",
-  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.5.6: Add-another-key screen — drop the redundant single-tab 'Import' ghost button (one clear 'Import key' submit) + fix the password copy in all 14 languages (import while unlocked needs no password). v0.5.5: unlock-gate JS crash fix (dead seedTag ref).",
+  "version": "0.5.7",
+  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.5.7: NFT Inventory Phase A — read + decode AtomicAssets directly from chain with schema/template cache (memory-only, 30s TTL). v0.5.6: Add-another-key screen — drop the redundant single-tab 'Import' ghost button + fix the password copy in all 14 languages. v0.5.5: unlock-gate JS crash fix (dead seedTag ref).",
   "brand": {
     "note": "Single source of truth is the BRAND const in index.js (the panel fetches /plugin/wax-wallet/brand). The `name` above is just the office-shelf label and mirrors BRAND.name.",
     "name": "waxwing",
@@ -19,6 +19,7 @@
     { "name": "balance", "args": "<name> [SYMBOL] [contract]", "desc": "Token balance (default eosio.token / core symbol of the selected chain)" },
     { "name": "history", "args": "<name> [limit]", "desc": "Recent transactions of an account (Hyperion v2)" },
     { "name": "keyaccounts", "args": "<publicKey>", "desc": "Look up which on-chain accounts a public key controls (Hyperion get_key_accounts)" },
+    { "name": "nftassets", "args": "<account> [--collection <name>] [--schema <name>] [--template_id <id>] [--limit N]", "desc": "List NFT assets owned by an account from AtomicAssets (decoded immutable + mutable data)" },
     { "name": "create", "args": "<password> [account] [permission]", "desc": "Generate a NEW keypair — auto-resolves on-chain accounts via Hyperion; single account→auto-bind, multiple→return list, none→manual setaccount" },
     { "name": "import", "args": "<password> <privkey> [account] [permission]", "desc": "Import a private key — auto-resolves on-chain accounts via Hyperion (same as create)" },
     { "name": "accounts", "args": "[--network <id>]", "desc": "List stored keys/accounts on the selected network (public info only — never private keys)" },

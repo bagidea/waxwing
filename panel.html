@@ -447,6 +447,30 @@
   .set-note .ic { width:15px; height:15px; flex:0 0 auto; margin-top:1px; color:var(--warn); }
   .set-note.info .ic { color:var(--acc); }
   [dir="rtl"] .set-row, [dir="rtl"] .set-note, [dir="rtl"] .set-group > .gh { text-align:right; }
+
+/* ── inventory grid ── */
+.inv-filters { display:flex; gap:8px; margin-bottom:12px; }
+.inv-filters select { flex:1; font-size:12px; padding:9px 10px; }
+.inv-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
+.inv-card { background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line); border-radius:16px; overflow:hidden; cursor:pointer; transition:border-color .12s, transform .12s; }
+.inv-card:hover { border-color:rgba(120,170,255,.5); transform:translateY(-1px); }
+.inv-img { aspect-ratio:1; background:#0a1120; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.inv-img img { width:100%; height:100%; object-fit:cover; }
+.inv-img .placeholder { width:48px; height:48px; color:var(--dim); }
+.inv-meta { padding:10px 11px; }
+.inv-meta .nm { font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.inv-meta .sub { font-size:10.5px; color:var(--dim); margin-top:3px; display:flex; justify-content:space-between; }
+.inv-meta .mut { font-size:10px; color:var(--acc); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.inv-empty { text-align:center; padding:30px 12px; color:var(--dim); }
+.inv-empty .ic { width:40px; height:40px; color:var(--line); margin-bottom:8px; }
+.inv-detail .dimg { width:100%; aspect-ratio:1; border-radius:16px; background:#0a1120; overflow:hidden; margin-bottom:12px; }
+.inv-detail .dimg img { width:100%; height:100%; object-fit:cover; }
+.inv-detail .dname { font-size:16px; font-weight:800; margin-bottom:4px; }
+.inv-detail .dsub { font-size:11px; color:var(--dim); margin-bottom:12px; }
+.inv-props { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
+.inv-prop { background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+.inv-prop .k { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); font-weight:700; }
+.inv-prop .v { font-size:11.5px; color:var(--fg); margin-top:2px; overflow:hidden; text-overflow:ellipsis; }
 </style>
 </head>
 <body>
@@ -498,6 +522,7 @@
   <symbol id="tok-xpr" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g-xpr)"/><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#tk-sheen)"/><circle cx="22" cy="18" r="20" fill="url(#tk-spec)"/><rect x="2.75" y="2.75" width="58.5" height="58.5" rx="17.25" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1.5"/><text x="32" y="33" text-anchor="middle" dominant-baseline="central" font-family="Segoe UI,system-ui,sans-serif" font-weight="800" font-size="27" fill="#04211b">X</text></symbol>
   <symbol id="tok-tlm" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g-tlm)"/><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#tk-sheen)"/><circle cx="22" cy="18" r="20" fill="url(#tk-spec)"/><rect x="2.75" y="2.75" width="58.5" height="58.5" rx="17.25" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1.5"/><text x="32" y="33" text-anchor="middle" dominant-baseline="central" font-family="Segoe UI,system-ui,sans-serif" font-weight="800" font-size="27" fill="#2a1a02">T</text></symbol>
   <symbol id="tok-generic" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g-gen)"/><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#tk-sheen)"/><circle cx="22" cy="18" r="20" fill="url(#tk-spec)" opacity=".6"/><rect x="2.75" y="2.75" width="58.5" height="58.5" rx="17.25" fill="none" stroke="#5ec8ff" stroke-opacity=".30" stroke-width="1.5"/><circle cx="32" cy="32" r="12.5" fill="none" stroke="#7fd6ff" stroke-opacity=".75" stroke-width="2.4"/><circle cx="32" cy="32" r="3.4" fill="#7fd6ff" fill-opacity=".85"/></symbol>
+  <symbol id="g-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
 </svg>
 
 <!-- ── app shell ── -->
@@ -656,10 +681,21 @@
       </div>
       <div class="msg hide" id="stakeMsg"></div>
     </section>
+
+    <!-- ── INVENTORY ── -->
+    <section class="screen" id="screen-inventory">
+      <div class="screen-h"><h1>Inventory</h1><span class="sub" id="invSub">AtomicAssets NFTs</span></div>
+      <div class="inv-filters">
+        <select id="invCollection"><option value="">All collections</option></select>
+        <select id="invSchema"><option value="">All schemas</option></select>
+      </div>
+      <div class="card tight"><div id="invGrid" class="inv-grid"><div class="inv-empty"><svg class="ic"><use href="#g-grid"/></svg><div>Loading NFTs…</div></div></div></div>
+    </section>
   </main>
 
   <nav>
     <button class="active" data-screen="home"><svg class="ic"><use href="#g-home"/></svg>Overview</button>
+    <button data-screen="inventory"><svg class="ic"><use href="#g-grid"/></svg>Inventory</button>
     <button data-act="portfolio"><svg class="ic"><use href="#g-wallet"/></svg>Portfolio</button>
     <button data-screen="stake"><svg class="ic"><use href="#g-stake"/></svg>Resources</button>
     <button data-screen="send"><svg class="ic"><use href="#g-send"/></svg>Send</button>
@@ -827,6 +863,7 @@ function showScreen(name) {
   for (const s of document.querySelectorAll(".screen")) s.classList.toggle("active", s.id === "screen-"+name);
   for (const b of document.querySelectorAll("nav button")) b.classList.toggle("active", b.dataset.screen === name);
   const m = document.querySelector("main"); if (m) m.scrollTop = 0;
+  if (name === "inventory") loadInventory();
 }
 for (const b of document.querySelectorAll("nav button")) b.onclick = () => {
   if (b.dataset.act === "portfolio") { openAccountSheet(); return; }   // Portfolio = bottom-sheet (Layout A), not a screen
@@ -960,6 +997,7 @@ function syncHeader() {
 async function setActive(name, doSwitch) {
   if (!name) return;
   STATE.active = name;
+  _invAccount = null; // invalidate inventory cache on account switch
   syncHeader();
   cmd("select", { account: name });   // align engine default-sender on this net (best-effort for watch-only)
   if (doSwitch !== false) showScreen("home");
@@ -2902,6 +2940,95 @@ function openToolsSheet() {
     };
   }
 }
+
+/* ── Inventory (AtomicAssets NFTs) ── */
+function ipfsUrl(cid) {
+  if (!cid) return null;
+  if (cid.startsWith("http://") || cid.startsWith("https://") || cid.startsWith("ipfs://")) return cid;
+  return `https://ipfs.io/ipfs/${cid}`;
+}
+
+let _invAssets = [];
+let _invAccount = null;
+async function loadInventory(force) {
+  const account = STATE.active;
+  if (!account) {
+    $("invGrid").innerHTML = `<div class="inv-empty"><svg class="ic"><use href="#g-grid"/></svg><div>Select an account to view NFTs.</div></div>`;
+    return;
+  }
+  if (!force && _invAssets.length > 0 && _invAccount === account) return;
+  _invAccount = account;
+  $("invGrid").innerHTML = `<div class="inv-empty"><svg class="ic"><use href="#g-refresh"/></svg><div>Loading NFTs…</div></div>`;
+  const r = await cmd("nftassets", { account, limit: 200 });
+  if (!r.ok) {
+    $("invGrid").innerHTML = `<div class="inv-empty"><svg class="ic"><use href="#g-alert"/></svg><div>${escapeHtml(r.msg || "Could not load NFTs")}</div></div>`;
+    return;
+  }
+  _invAssets = r.assets || [];
+  populateInvFilters(_invAssets);
+  renderInventory();
+}
+
+function populateInvFilters(assets) {
+  const colSet = new Set(), schSet = new Set();
+  for (const a of assets) { colSet.add(a.collection); schSet.add(a.schema); }
+  const colSel = $("invCollection"), schSel = $("invSchema");
+  const curCol = colSel.value, curSch = schSel.value;
+  colSel.innerHTML = `<option value="">All collections</option>` + [...colSet].sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  schSel.innerHTML = `<option value="">All schemas</option>` + [...schSet].sort().map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+  colSel.value = curCol; schSel.value = curSch;
+}
+
+function renderInventory() {
+  const col = $("invCollection").value, sch = $("invSchema").value;
+  const list = _invAssets.filter(a => (!col || a.collection === col) && (!sch || a.schema === sch));
+  if (list.length === 0) {
+    $("invGrid").innerHTML = `<div class="inv-empty"><svg class="ic"><use href="#g-grid"/></svg><div>No NFTs match the filters.</div></div>`;
+    return;
+  }
+  $("invGrid").innerHTML = list.map(a => {
+    const name = a.immutable?.name || a.immutable?.title || `#${a.asset_id}`;
+    const img = a.immutable?.img || a.immutable?.image || a.immutable?.backimg || a.immutable?.media;
+    const imgUrl = ipfsUrl(img);
+    const mut = Object.entries(a.mutable || {}).slice(0, 2).map(([k, v]) => `${k}: ${v}`).join(" · ");
+    return `
+      <div class="inv-card" data-aid="${escapeHtml(a.asset_id)}">
+        <div class="inv-img">${imgUrl ? `<img src="${escapeHtml(imgUrl)}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<svg class=\\'ic placeholder\\'><use href=\\'#g-grid\\'/></svg>'"` : `<svg class="ic placeholder"><use href="#g-grid"/></svg>`}</div>
+        <div class="inv-meta">
+          <div class="nm">${escapeHtml(name)}</div>
+          <div class="sub"><span>${escapeHtml(a.collection)}</span><span>#${escapeHtml(String(a.template_id))}</span></div>
+          ${mut ? `<div class="mut">${escapeHtml(mut)}</div>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+  for (const c of document.querySelectorAll(".inv-card")) {
+    c.onclick = () => {
+      const asset = _invAssets.find(x => String(x.asset_id) === c.dataset.aid);
+      if (asset) openInvDetail(asset);
+    };
+  }
+}
+
+function openInvDetail(a) {
+  const name = a.immutable?.name || a.immutable?.title || `Asset #${a.asset_id}`;
+  const img = a.immutable?.img || a.immutable?.image || a.immutable?.backimg || a.immutable?.media;
+  const imgUrl = ipfsUrl(img);
+  const immProps = Object.entries(a.immutable || {}).map(([k, v]) => ({k, v: String(v)}));
+  const mutProps = Object.entries(a.mutable || {}).map(([k, v]) => ({k, v: String(v)}));
+  const propRows = (props) => props.map(p => `<div class="inv-prop"><div class="k">${escapeHtml(p.k)}</div><div class="v" title="${escapeHtml(p.v)}">${escapeHtml(p.v)}</div></div>`).join("");
+  openSheet(`
+    <div class="inv-detail">
+      <div class="dimg">${imgUrl ? `<img src="${escapeHtml(imgUrl)}" alt="" onerror="this.style.display='none';this.parentElement.innerHTML='<svg class=\\'ic placeholder\\' style=\\'width:64px;height:64px\\'><use href=\\'#g-grid\\'/></svg>'"` : `<svg class="ic placeholder" style="width:64px;height:64px"><use href="#g-grid"/></svg>`}</div>
+      <div class="dname">${escapeHtml(name)}</div>
+      <div class="dsub">Asset ${escapeHtml(a.asset_id)} · ${escapeHtml(a.collection)} · ${escapeHtml(a.schema)} · template #${escapeHtml(String(a.template_id))}</div>
+      ${immProps.length ? `<h2 class="sec">Immutable</h2><div class="inv-props">${propRows(immProps)}</div>` : ""}
+      ${mutProps.length ? `<h2 class="sec">Mutable</h2><div class="inv-props">${propRows(mutProps)}</div>` : ""}
+    </div>
+  `, false);
+}
+
+$("invCollection").onchange = renderInventory;
+$("invSchema").onchange = renderInventory;
 
 async function initBio() {
   try { if (!window.PublicKeyCredential) return;
