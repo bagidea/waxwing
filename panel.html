@@ -484,6 +484,27 @@
 .nft .meta .col { font-size:10.5px; color:var(--acc); margin-top:3px; display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; }
 .nft .meta .col .ic { width:11px; height:11px; }
 .nft .meta .tpl { font-size:10px; color:var(--dim); margin-top:3px; }
+/* ── marketplace tile additions (Mine | Market segment) ── */
+.nft .price-row { display:flex; align-items:center; gap:8px; padding:0 11px 11px; }
+.nft .price-row .buy, .nft .price-row .cancel { flex:0 0 auto; }
+.nft .price-row .price { margin-left:auto; text-align:right; line-height:1.15; }
+.nft .price-row .price b { font-size:14px; font-weight:800; color:var(--acc); letter-spacing:-.01em; }
+.nft .price-row .price small { display:block; font-size:10px; color:var(--mut); font-weight:600; }
+.nft-grid.list .nft .price-row { padding:0; margin-left:auto; flex:0 0 auto; }
+.nft.sold .art { opacity:.55; filter:grayscale(.4); }
+/* corner badges (sit like the existing .stage/.qty pills) */
+.nft .badge, .ls-hero .badge { position:absolute; top:7px; right:7px; font-size:9px; font-weight:800;
+  border-radius:999px; padding:2px 7px; backdrop-filter:blur(3px); border:1px solid rgba(255,255,255,.18); z-index:1; }
+.badge.sale    { color:#bfe9ff; background:rgba(94,200,255,.22); border-color:rgba(94,200,255,.4); }
+.badge.mine    { color:#ffd0d8; background:rgba(255,107,129,.20); border-color:rgba(255,107,129,.4); }
+.badge.sold    { color:#cfe0ff; background:rgba(0,0,0,.55); }
+.badge.pending { color:#1c1304; background:var(--warn); border-color:transparent; animation:mktpulse 1.6s ease-in-out infinite; }
+@keyframes mktpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+/* listing-detail sheet hero (smaller than full asset-detail) */
+.ls-hero { position:relative; width:100%; max-height:240px; aspect-ratio:1; border-radius:16px;
+  background:#0a1120; overflow:hidden; margin:2px 0 14px; display:flex; align-items:center; justify-content:center; }
+.ls-hero img { width:100%; height:100%; object-fit:cover; }
+.ls-hero svg.glyph { width:34%; height:34%; color:var(--dim); }
 #invEmpty { text-align:center; padding:34px 12px; color:var(--dim); }
 #invEmpty .ic { width:40px; height:40px; color:var(--line); margin-bottom:8px; }
 #invMoreWrap { margin-top:14px; }
@@ -611,6 +632,7 @@ pre.rawjson .num { color:#ffcf6b; }
   <symbol id="tok-tlm" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g-tlm)"/><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#tk-sheen)"/><circle cx="22" cy="18" r="20" fill="url(#tk-spec)"/><rect x="2.75" y="2.75" width="58.5" height="58.5" rx="17.25" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1.5"/><text x="32" y="33" text-anchor="middle" dominant-baseline="central" font-family="Segoe UI,system-ui,sans-serif" font-weight="800" font-size="27" fill="#2a1a02">T</text></symbol>
   <symbol id="tok-generic" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#g-gen)"/><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#tk-sheen)"/><circle cx="22" cy="18" r="20" fill="url(#tk-spec)" opacity=".6"/><rect x="2.75" y="2.75" width="58.5" height="58.5" rx="17.25" fill="none" stroke="#5ec8ff" stroke-opacity=".30" stroke-width="1.5"/><circle cx="32" cy="32" r="12.5" fill="none" stroke="#7fd6ff" stroke-opacity=".75" stroke-width="2.4"/><circle cx="32" cy="32" r="3.4" fill="#7fd6ff" fill-opacity=".85"/></symbol>
   <symbol id="g-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="g-tag" viewBox="0 0 24 24"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
 </svg>
 
 <!-- ── app shell ── -->
@@ -773,6 +795,12 @@ pre.rawjson .num { color:#ffcf6b; }
     <!-- ── INVENTORY ── -->
     <section class="screen" id="screen-inventory">
       <div class="screen-h"><h1>Inventory</h1><span class="sub" id="invSub">AtomicAssets NFTs</span></div>
+      <div class="seg" id="invModeSeg" style="margin-bottom:10px">
+        <button class="active" data-mode="mine" type="button">Mine</button>
+        <button data-mode="market" type="button">Market</button>
+      </div>
+      <!-- MINE wrapper holds the existing owned-NFT inventory (assets + collections) -->
+      <div id="invMineWrap">
       <div class="inv-tabs">
         <button class="active" id="invTabAssets" type="button">Assets</button>
         <button id="invTabCollections" type="button">Collections</button>
@@ -800,7 +828,10 @@ pre.rawjson .num { color:#ffcf6b; }
           <div id="invEmpty" class="hide"><svg class="ic"><use href="#g-grid"/></svg><div>No NFTs found.</div></div>
           <div id="invGrid" class="nft-grid"></div>
         </div>
-        <div id="invMoreWrap" class="hide"><button class="btn ghost" id="invMore">Load more</button></div>
+        <div id="invMoreWrap" class="hide" style="display:flex;gap:8px">
+          <button class="btn ghost" id="invLess">Show less</button>
+          <button class="btn ghost" id="invMore">Load more</button>
+        </div>
       </div>
       <!-- COLLECTIONS VIEW -->
       <div id="invCollectionsView" class="hide">
@@ -815,6 +846,31 @@ pre.rawjson .num { color:#ffcf6b; }
         </div>
         <div id="colEmpty" class="hide"><svg class="ic"><use href="#g-grid"/></svg><div>No collections found.</div></div>
         <div id="colGrid" class="nft-grid"></div>
+      </div>
+      </div><!-- /invMineWrap -->
+      <!-- MARKET VIEW — AtomicMarket listings (WAX) -->
+      <div id="invMarketView" class="hide">
+        <div class="inv-controls">
+          <input id="mktSearch" type="search" placeholder="Search the market…" autocomplete="off" spellcheck="false" />
+          <button class="iconbtn" id="mktRefresh" type="button" title="Refresh"><svg class="ic"><use href="#g-refresh"/></svg></button>
+        </div>
+        <div class="inv-pills">
+          <button class="inv-pill" id="mktColPick"><span class="lbl">Collection</span><span id="mktColLbl">All</span><svg class="ic" style="width:12px;height:12px"><use href="#g-chev-down"/></svg></button>
+        </div>
+        <div class="fmeta">
+          <span id="mktCount"><b>0</b> listings</span>
+          <span class="grow"></span>
+          <button id="mktSort" type="button">Sort: Newest</button>
+          <button id="mktViewGrid" class="on" type="button" aria-label="Grid view"><svg class="ic"><use href="#g-grid"/></svg></button>
+          <button id="mktViewList" type="button" aria-label="List view"><svg class="ic" style="stroke-width:2.5"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+        </div>
+        <div id="mktMsg" class="msg hide" style="margin-bottom:10px"></div>
+        <div id="mktEmpty" class="hide"><svg class="ic"><use href="#g-tag"/></svg><div>No listings yet.</div></div>
+        <div id="mktGrid" class="nft-grid"></div>
+        <div id="mktMoreWrap" class="hide" style="display:flex;gap:8px">
+          <button class="btn ghost" id="mktLess">Show less</button>
+          <button class="btn ghost" id="mktMore">Load more</button>
+        </div>
       </div>
     </section>
 
@@ -844,6 +900,7 @@ pre.rawjson .num { color:#ffcf6b; }
         <div id="assetRarity" class="asset-rarity hide"></div>
         <div class="asset-actions">
           <button class="btn seal" id="assetTransfer"><svg class="ic"><use href="#g-send"/></svg> Transfer</button>
+          <button class="btn ghost" id="assetList"><svg class="ic"><use href="#g-tag"/></svg> List for sale</button>
           <button class="btn ghost" id="assetExplorer"><svg class="ic"><use href="#g-external"/></svg> Explorer</button>
         </div>
         <div class="card">
@@ -1120,6 +1177,12 @@ function applyChain(n) {
   $("balCore").innerHTML = `0 <small>${escapeHtml(n.coreSymbol)}</small>`;
   $("cpuAmt").placeholder = `0.0 ${n.coreSymbol}`;
   $("netAmt").placeholder = `0.0 ${n.coreSymbol}`;
+  // Show/hide NFT + Marketplace tabs based on chain features
+  const invBtn = document.querySelector('nav button[data-screen="inventory"]');
+  if (invBtn) invBtn.classList.toggle("hide", !n.features?.atomicAssets);
+  const mktBtn = $("invModeSeg")?.querySelector('button[data-mode="market"]');
+  if (mktBtn) mktBtn.classList.toggle("hide", !n.features?.atomicMarket);
+  if (typeof INV !== "undefined" && !n.features?.atomicMarket && INV.mode === "market") switchInvMode("mine");
   renderSendForm();
 }
 async function pingNet() {
@@ -1461,8 +1524,8 @@ $("sendReview").onclick = async () => {
    every intent kind (transfer + stake/unstake/buyram/sellram). The engine returns
    intent.{kind, ...view}; we render a headline + decoded rows, then seal it with
    `confirm {id}` (action-agnostic) or dismiss with `cancel {id}`. ── */
-const SIGN_TITLE = { transfer:"Confirm & sign", transfernft:"Transfer NFT", stake:"Stake CPU/NET", unstake:"Unstake CPU/NET", buyrambytes:"Buy RAM", buyram:"Buy RAM", sellram:"Sell RAM", refund:"Claim refund" };
-const SIGN_VERB  = { transfer:"Seal & Send", transfernft:"Seal Transfer", stake:"Stake", unstake:"Unstake", buyrambytes:"Buy RAM", buyram:"Buy RAM", sellram:"Sell RAM", refund:"Claim" };
+const SIGN_TITLE = { transfer:"Confirm & sign", transfernft:"Transfer NFT", stake:"Stake CPU/NET", unstake:"Unstake CPU/NET", buyrambytes:"Buy RAM", buyram:"Buy RAM", sellram:"Sell RAM", refund:"Claim refund", "market-buy":"Confirm purchase", "market-list":"Confirm listing", "market-cancel":"Cancel listing" };
+const SIGN_VERB  = { transfer:"Seal & Send", transfernft:"Seal Transfer", stake:"Stake", unstake:"Unstake", buyrambytes:"Buy RAM", buyram:"Buy RAM", sellram:"Sell RAM", refund:"Claim", "market-buy":"Sign & buy", "market-list":"Sign & list", "market-cancel":"Sign & cancel" };
 function openSignSheet(intent) {
   const danger = intent.chainKind === "mainnet";
   const net = intent.network || STATE.chain.name;
@@ -1487,14 +1550,30 @@ function openSignSheet(intent) {
     headline = intent.bytes != null ? `${escapeHtml(intent.bytes)} <small>bytes</small>` : `${escapeHtml(intent.quant||"")}`;
   } else if (k === "sellram") {
     headline = `${escapeHtml(intent.bytes)} <small>bytes</small>`;
+  } else if (k === "market-buy" || k === "market-list") {
+    const [a, ...r] = String((k === "market-buy" ? intent.price : intent.listing_price) || "").split(" ");
+    headline = `${escapeHtml(a)} <small>${escapeHtml(r.join(" ") || intent.coreSymbol || "")}</small>`;
+  } else if (k === "market-cancel") {
+    headline = `Sale <small>#${escapeHtml(String(intent.sale_id||""))}</small>`;
   } else headline = escapeHtml(k);
 
   const kv = (kk, vv) => `<div class="sign-kv"><span class="k">${kk}</span><span class="v">${vv}</span></div>`;
-  const actor = intent.from || intent.payer || intent.account || intent.owner || "";
+  const actor = intent.from || intent.payer || intent.account || intent.owner || intent.buyer || intent.seller || "";
   let rows = "";
   if (actor) rows += kv("Account", escapeHtml(actor));
   if (intent.to) rows += kv("To", escapeHtml(intent.to));
   if (assetIds.length) rows += kv("Asset IDs", `<span class="mono">${escapeHtml(assetIds.join(", "))}</span>`);
+  if (k === "market-buy") {
+    if (intent.seller) rows += kv("Seller", escapeHtml(intent.seller));
+    if (intent.sale_id) rows += kv("Sale #", escapeHtml(String(intent.sale_id)));
+    if (intent.price) rows += kv("You pay", `<b style="color:var(--acc)">${escapeHtml(intent.price)}</b>`);
+  } else if (k === "market-list") {
+    if (intent.listing_price) rows += kv("List price", `<b style="color:var(--acc)">${escapeHtml(intent.listing_price)}</b>`);
+    if (intent.marketplace) rows += kv("Marketplace", escapeHtml(intent.marketplace));
+  } else if (k === "market-cancel") {
+    if (intent.sale_id) rows += kv("Sale #", escapeHtml(String(intent.sale_id)));
+    if (intent.marketplace) rows += kv("Marketplace", escapeHtml(intent.marketplace));
+  }
   if (intent.receiver && intent.receiver !== actor) rows += kv("Receiver", escapeHtml(intent.receiver));
   if (intent.contract) rows += kv("Contract", escapeHtml(intent.contract));
   if (intent.memo != null) rows += kv("Memo", intent.memo ? escapeHtml(intent.memo) : `<span class="muted">none</span>`);
@@ -1508,10 +1587,27 @@ function openSignSheet(intent) {
     : `<div class="banner" style="margin:14px 0"><svg class="ic"><use href="#g-shield"/></svg><span>Signs locally with your stored key${escapeHtml(note)}.</span></div>`;
   const verb = SIGN_VERB[k] || "Seal & Send";
 
+  // market-buy carries the asset(s) inline (intent.assets[].media, CIDv0-decoded) — show
+  // the NFT right in the Sign sheet so the buyer sees what they're paying for. No re-fetch.
+  let buyAsset = "";
+  if (k === "market-buy" && Array.isArray(intent.assets) && intent.assets.length) {
+    const a0 = intent.assets[0];
+    const col0 = a0.collection || "";
+    const m = a0.media && (a0.media.thumb || a0.media.url);
+    const nm = a0.name || `#${a0.asset_id || ""}`;
+    const extra = intent.assets.length > 1 ? ` · ×${intent.assets.length}` : "";
+    const img = m ? `<img src="${escapeHtml(m)}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.parentElement.querySelector('.glyph').classList.remove('hide')" />` : "";
+    buyAsset = `<div class="sheet-row" style="margin-top:10px;cursor:default">
+      <div class="art" style="width:48px;height:48px;border-radius:12px;overflow:hidden;background:${collectionGradient(col0)};flex:0 0 auto;display:flex;align-items:center;justify-content:center">${img}<svg class="glyph ${m?"hide":""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg></div>
+      <span class="nm"><b>${escapeHtml(nm)}</b><small style="display:block;color:var(--mut)">${escapeHtml(col0)}${extra}</small></span>
+    </div>`;
+  }
+
   openSheet(`
     <h3><svg class="ic" style="color:var(--seal)"><use href="#g-seal"/></svg> ${escapeHtml(SIGN_TITLE[k]||"Confirm & sign")}</h3>
     <div class="sh-sub">Decoded by the wallet engine. Nothing is broadcast until you seal it.</div>
-    <div class="sign-amount"><div class="lbl">${k==="transfer"?"You send":(k==="transfernft"?"You transfer":"Amount")}</div><div class="a">${headline}</div></div>
+    ${buyAsset}
+    <div class="sign-amount"><div class="lbl">${k==="transfer"?"You send":k==="transfernft"?"You transfer":k==="market-buy"?"You pay":k==="market-list"?"List price":"Amount"}</div><div class="a">${headline}</div></div>
     ${actor?`<div class="sign-arrow"><span class="av sm"></span> ${escapeHtml(actor)}${intent.to?` <svg class="ic"><use href="#g-send"/></svg> ${escapeHtml(intent.to)}`:""}</div>`:""}
     <div style="margin-top:6px">${rows}</div>
     ${intent.note ? `<div class="banner warn" style="margin:12px 0 0"><svg class="ic"><use href="#g-alert"/></svg><span>${escapeHtml(intent.note)}</span></div>` : ""}
@@ -1539,8 +1635,14 @@ function openSignSheet(intent) {
       else if (k === "transfernft") { /* asset detail state is refreshed by loadInventory below */ }
       else if (k === "stake" || k === "unstake") { $("cpuAmt").value=""; $("netAmt").value=""; }
       else if (k === "buyrambytes" || k === "buyram" || k === "sellram") { $("ramAmt").value=""; }
-      const who = r.result?.from || r.result?.account || r.result?.payer || actor || STATE.active;
-      setTimeout(() => { closeSheet(); if (who) loadAccount(who); showScreen(k==="transfer"?"home":(k==="transfernft"?"inventory":"stake")); }, 1600);
+      const who = r.result?.from || r.result?.account || r.result?.payer || r.result?.buyer || r.result?.seller || actor || STATE.active;
+      const isMkt = (k === "market-buy" || k === "market-list" || k === "market-cancel");
+      setTimeout(() => {
+        closeSheet();
+        if (who) loadAccount(who);
+        showScreen(k==="transfer"?"home":(k==="transfernft"||isMkt)?"inventory":"stake");
+        if (isMkt && typeof switchInvMode === "function") switchInvMode("market");
+      }, 1600);
     } else {
       const stale = /no such sign-intent|expired/i.test(r.msg||"");
       flash($("signMsg"), escapeHtml(r.msg||"broadcast failed") + (stale ? " — close and try again." : ""), false);
@@ -3166,19 +3268,34 @@ function openToolsSheet() {
 /* ── Inventory (AtomicAssets NFTs) ── */
 // IPFS gateway fallback chain (matches engine / Sahara's Research Board findings).
 const IPFS_GATEWAYS_PANEL = ["https://ipfs.io/ipfs/", "https://dweb.link/ipfs/"];
+
+// Media proxy: route external image URLs through the daemon's local proxy to
+// bypass webview URL blocking (ipfs.io, atomichub, etc. may be blocked by the
+// webview's network sandbox). The engine exposes GET /plugin/wax-wallet/media?url=…
+function proxyUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  const s = url.trim();
+  if (!s) return "";
+  // Data URIs, relative URLs, and already-proxied URLs pass through unchanged.
+  if (s.startsWith("data:") || s.startsWith("/") || s.includes("/plugin/wax-wallet/media")) return s;
+  // External URLs go through the local proxy.
+  if (/^https?:\/\//i.test(s)) return "/plugin/wax-wallet/media?url=" + encodeURIComponent(s);
+  return s;
+}
+
 function ipfsUrl(cid) {
   if (!cid || (typeof cid === "object" && cid !== null)) return null;
   const s = String(cid).trim();
-  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  if (s.startsWith("http://") || s.startsWith("https://")) return proxyUrl(s);
   const v = s.startsWith("ipfs://") ? s.slice(7) : s;
-  return IPFS_GATEWAYS_PANEL[0] + v;
+  return proxyUrl(IPFS_GATEWAYS_PANEL[0] + v);
 }
 function ipfsUrlSet(cid) {
   if (!cid || (typeof cid === "object" && cid !== null)) return [];
   const s = String(cid).trim();
-  if (s.startsWith("http://") || s.startsWith("https://")) return [s];
+  if (s.startsWith("http://") || s.startsWith("https://")) return [proxyUrl(s)];
   const v = s.startsWith("ipfs://") ? s.slice(7) : s;
-  return IPFS_GATEWAYS_PANEL.map((g) => g + v);
+  return IPFS_GATEWAYS_PANEL.map((g) => proxyUrl(g + v));
 }
 function mediaTag(asset) {
   const m = asset.media;
@@ -3195,9 +3312,12 @@ function bestImageUrl(asset) {
 function renderMediaHtml(asset, cls) {
   const url = bestImageUrl(asset);
   if (!url) return "";
-  const srcset = ipfsUrlSet(asset.image || asset.media?.field ? (asset.immutable?.[asset.media?.field] || asset.image) : "").join(", ");
-  return `<img class="${cls || ""}" src="${escapeHtml(url)}" srcset="${escapeHtml(srcset)}" alt="" loading="lazy"
-    onerror="this.onerror=null;this.src='${escapeHtml(IPFS_GATEWAYS_PANEL[1] + (String(asset.image || asset.media?.field ? (asset.immutable?.[asset.media?.field] || asset.image) : "").replace(/^ipfs:\/\//,'')))}'" />`;
+  const rawCid = asset.image || asset.media?.field ? (asset.immutable?.[asset.media?.field] || asset.image) : "";
+  const srcset = ipfsUrlSet(rawCid).join(", ");
+  const fbCid = String(rawCid).replace(/^ipfs:\/\//, '');
+  const fbSrc = fbCid ? escapeHtml(proxyUrl(IPFS_GATEWAYS_PANEL[1] + fbCid)) : "";
+  return `<img class="${cls || ""}" src="${escapeHtml(proxyUrl(url))}" srcset="${escapeHtml(srcset)}" alt="" loading="lazy"
+    onerror="this.onerror=null;this.src='${fbSrc}'" />`;
 }
 
 const INV = {
@@ -3213,6 +3333,7 @@ const INV = {
   currentAsset: null,
   loading: false,
   tab: "assets",
+  mode: "mine",
   heldCollections: new Set(),
 };
 const COL = {
@@ -3322,7 +3443,12 @@ function updateInventoryMeta() {
   const cols = new Set(INV.filtered.map((a) => a.collection));
   $("invCount").innerHTML = `<b>${INV.filtered.length}</b> asset${INV.filtered.length === 1 ? "" : "s"} · <b>${cols.size}</b> collection${cols.size === 1 ? "" : "s"}`;
   const shown = Math.min(INV.filtered.length, INV.page * INV.perPage);
-  $("invMoreWrap").classList.toggle("hide", shown >= INV.filtered.length);
+  // Show pagination bar when there are items to show/hide or more to load.
+  const hasMore = shown < INV.filtered.length;
+  const canShrink = INV.page > 1;
+  $("invMoreWrap").classList.toggle("hide", !hasMore && !canShrink);
+  $("invMore").classList.toggle("hide", !hasMore);
+  $("invLess").classList.toggle("hide", !canShrink);
 }
 
 function renderInventoryChips() {
@@ -3399,7 +3525,7 @@ function renderInventoryGrid() {
   }
   $("invEmpty").classList.add("hide");
   $("invGrid").innerHTML = shown.map((a) => {
-    const img = a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.glyph').classList.remove('hide')" />` : "";
+    const img = a.image_url ? `<img src="${escapeHtml(proxyUrl(a.image_url))}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.glyph').classList.remove('hide')" />` : "";
     const stage = stageOf(a);
     const qty = qtyOf(a);
     const stageChip = stage ? `<span class="stage"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7z"/></svg>${escapeHtml(stage)}</span>` : "";
@@ -3487,7 +3613,7 @@ function renderCollectionGrid() {
   $("colGrid").innerHTML = COL.filtered.map((c) => {
     const img = heldCollectionImage(c.collection_name);
     const art = img
-      ? `<img src="${escapeHtml(img)}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.glyph').classList.remove('hide')" />`
+      ? `<img src="${escapeHtml(proxyUrl(img))}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.glyph').classList.remove('hide')" />`
       : "";
     const fee = c.market_fee != null ? `${(Number(c.market_fee) * 100).toFixed(1)}%` : "—";
     return `
@@ -3536,7 +3662,7 @@ async function showCollectionDetail(name) {
   hero.style.background = collectionGradient(name);
   const imgUrl = heldCollectionImage(name) || COL.templates.find((t) => t.media?.url)?.media?.url;
   const img = $("colDetailImg");
-  if (imgUrl) { img.src = imgUrl; img.classList.remove("hide"); $("colDetailGlyph").classList.add("hide"); }
+  if (imgUrl) { img.src = proxyUrl(imgUrl); img.classList.remove("hide"); $("colDetailGlyph").classList.add("hide"); }
   else { img.classList.add("hide"); $("colDetailGlyph").classList.remove("hide"); }
   img.onerror = () => { img.classList.add("hide"); $("colDetailGlyph").classList.remove("hide"); };
 
@@ -3572,7 +3698,7 @@ function renderCollectionDetailTabs(tab) {
     if (!COL.templates.length) { $("colDetailTemplatesList").innerHTML = `<div class="muted">No templates found.</div>`; return; }
     $("colDetailTemplatesList").innerHTML = `<div class="tpl-grid">${COL.templates.map((t) => {
       const url = t.media?.url;
-      const art = url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" onerror="this.style.display='none'" />` : "";
+      const art = url ? `<img src="${escapeHtml(proxyUrl(url))}" alt="" loading="lazy" onerror="this.style.display='none'" />` : "";
       return `
         <div class="tpl-card">
           <div class="art" style="background:${collectionGradient(c.collection_name)}">${art}
@@ -3661,7 +3787,7 @@ async function showAssetDetail(assetId) {
   const hero = $("assetHero");
   hero.style.background = collectionGradient(a.collection);
   const img = $("assetImg");
-  if (a.image_url) { img.src = a.image_url; img.classList.remove("hide"); $("assetGlyph").classList.add("hide"); }
+  if (a.image_url) { img.src = proxyUrl(a.image_url); img.classList.remove("hide"); $("assetGlyph").classList.add("hide"); }
   else { img.classList.add("hide"); $("assetGlyph").classList.remove("hide"); }
   img.onerror = () => { img.classList.add("hide"); $("assetGlyph").classList.remove("hide"); };
 
@@ -3763,6 +3889,7 @@ $("invSort").onclick = openSortSelect;
 $("invViewGrid").onclick = () => { INV.view = "grid"; $("invViewGrid").classList.add("on"); $("invViewList").classList.remove("on"); renderInventoryGrid(); };
 $("invViewList").onclick = () => { INV.view = "list"; $("invViewGrid").classList.remove("on"); $("invViewList").classList.add("on"); renderInventoryGrid(); };
 $("invMore").onclick = () => { INV.page++; updateInventoryMeta(); renderInventoryGrid(); };
+$("invLess").onclick = () => { INV.page = 1; updateInventoryMeta(); renderInventoryGrid(); };
 $("assetBack").onclick = backToInventory;
 $("assetBack").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") backToInventory(); };
 for (const b of $("assetSeg").querySelectorAll("button")) b.onclick = () => renderAssetTabs(b.dataset.tab);
@@ -3773,10 +3900,286 @@ $("assetExplorer").onclick = () => {
   openExt(url);
 };
 
+/* ════════════ MARKETPLACE — "Mine | Market" segment in Inventory ════════════
+   "Market" folds AtomicMarket listings into the Inventory screen beside "Mine"
+   (owned-NFT grid). Buy + List both terminate in the SAME unified Sign sheet
+   (openSignSheet) — amber stays sign-only. AtomicMarket is WAX-only. */
+const MKT = {
+  sales: [], page: 1, perPage: 40, loading: false, loaded: false,
+  search: "", collection: "", sort: "created", order: "desc", view: "grid", usdRate: null,
+};
+const MKT_SORTS = [
+  { sort: "created", order: "desc", label: "Newest" },
+  { sort: "price",   order: "asc",  label: "Price ↑" },
+  { sort: "price",   order: "desc", label: "Price ↓" },
+];
+const isWax = () => /^wax-/.test(STATE.chain && STATE.chain.id || "");
+
+// The engine hands back an asset string ("12.00000000 WAX") — don't re-round it
+// (MEMO-market-ui-contract §5). Just drop trailing zeros for a clean tile; precision is kept.
+function trimAsset(disp) {
+  const [amt, ...sym] = String(disp || "").split(" ");
+  let a = amt;
+  if (a.includes(".")) a = a.replace(/0+$/, "").replace(/\.$/, "");
+  return [a, ...sym].join(" ").trim();
+}
+const salePriceStr = (sale) => sale && sale.price ? (sale.price.display ? trimAsset(sale.price.display) : `${sale.price.amount} ${sale.price.token_symbol||""}`.trim()) : "—";
+
+function switchInvMode(mode) {
+  INV.mode = mode;
+  for (const b of $("invModeSeg").querySelectorAll("button")) b.classList.toggle("active", b.dataset.mode === mode);
+  $("invMineWrap").classList.toggle("hide", mode !== "mine");
+  $("invMarketView").classList.toggle("hide", mode !== "market");
+  $("invSub").textContent = mode === "market"
+    ? "Light Marketplace · AtomicMarket"
+    : (INV.tab === "collections" ? "All collections" : "Your AtomicAssets NFTs");
+  if (mode === "market") loadMarket();
+}
+
+async function loadMarket(force) {
+  if (MKT.loading) return;
+  { const mm = $("mktMsg"); if (mm) mm.classList.add("hide"); }   // drop any stale inline error
+  if (!isWax()) {
+    $("mktGrid").innerHTML = "";
+    $("mktEmpty").innerHTML = `<svg class="ic"><use href="#g-tag"/></svg><div>Marketplace runs on WAX only.</div><div class="sub" style="margin-top:4px">Switch to a wax-* network to browse listings.</div>`;
+    $("mktEmpty").classList.remove("hide");
+    $("mktCount").innerHTML = `<b>0</b> listings`; $("mktMoreWrap").classList.add("hide");
+    return;
+  }
+  if (MKT.loaded && !force) { renderMarketGrid(); return; }
+  MKT.loading = true; MKT.page = 1;
+  $("mktGrid").innerHTML = `<div class="empty center"><svg class="ic"><use href="#g-refresh"/></svg><div>Loading listings…</div></div>`;
+  $("mktEmpty").classList.add("hide");
+  const r = await cmd("market-browse", {
+    sort: MKT.sort, order: MKT.order, limit: 100,
+    collection: MKT.collection || undefined, search: MKT.search || undefined,
+  });
+  MKT.loading = false;
+  if (!r.ok) {
+    $("mktGrid").innerHTML = "";
+    $("mktEmpty").innerHTML = `<svg class="ic"><use href="#g-alert"/></svg><div>Couldn't load the market.</div><div class="sub" style="margin-top:4px">${escapeHtml(r.msg||"")}</div>`;
+    $("mktEmpty").classList.remove("hide");
+    return;
+  }
+  MKT.sales = Array.isArray(r.sales) ? r.sales : [];
+  MKT.loaded = true;
+  fetchWaxUsd();
+  renderMarketGrid();
+}
+
+// One cached WAX→USD rate (testnet WAX has no price; we show the mainnet WAX
+// est. with an explicit ≈, never a fabricated exact figure).
+async function fetchWaxUsd() {
+  if (MKT.usdRate != null) return;
+  const id = PRICE_ID[STATE.chain.coreSymbol];
+  if (!id) return;
+  try {
+    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`, { cache:"no-store" });
+    const p = (await r.json())[id];
+    if (p && p.usd != null) { MKT.usdRate = p.usd; renderMarketGrid(); }
+  } catch {}
+}
+function usdLine(amount) {
+  if (MKT.usdRate == null || !(amount > 0)) return "";
+  return `<small>≈ $${(amount*MKT.usdRate).toLocaleString(undefined,{maximumFractionDigits:2})}</small>`;
+}
+
+function marketTile(sale) {
+  const asset = (sale.assets && sale.assets[0]) || {};
+  const mine = STATE.active && sale.seller === STATE.active;
+  const media = asset.media && (asset.media.url || asset.media.thumb);
+  const name = asset.name || (sale.collection ? `${sale.collection} #${(sale.asset_ids||[])[0]||""}` : `Sale #${sale.sale_id}`);
+  const col = sale.collection || asset.collection || "—";
+  const img = media ? `<img src="${escapeHtml(proxyUrl(media))}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.glyph').classList.remove('hide')" />` : "";
+  const price = salePriceStr(sale);
+  const badge = mine ? `<span class="badge mine">YOURS</span>` : `<span class="badge sale">FOR SALE</span>`;
+  const more = (sale.asset_ids||[]).length > 1 ? `<span class="qty">×${sale.asset_ids.length}</span>` : "";
+  const buy = mine
+    ? `<button class="btn sm ghost cancel" data-cancel="${escapeHtml(sale.sale_id)}" title="Cancel this listing — releases the NFT back to you">Cancel</button>`
+    : `<button class="btn sm buy" data-sale="${escapeHtml(sale.sale_id)}">Buy</button>`;
+  return `
+    <article class="nft" role="button" tabindex="0" data-sale="${escapeHtml(sale.sale_id)}" title="${escapeHtml(name)}">
+      <div class="art" style="background:${collectionGradient(col)}">${img}
+        <svg class="glyph hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>${badge}${more}
+      </div>
+      <div class="meta">
+        <div class="nm2">${escapeHtml(name)}</div>
+        <div class="col"><svg class="ic"><use href="#g-grid"/></svg>${escapeHtml(col)}</div>
+      </div>
+      <div class="price-row">
+        ${buy}
+        <span class="price"><b>${escapeHtml(price)}</b>${usdLine(sale.price ? sale.price.amount : 0)}</span>
+      </div>
+    </article>`;
+}
+
+function renderMarketGrid() {
+  $("mktGrid").className = "nft-grid" + (MKT.view === "list" ? " list" : "");
+  const shown = MKT.sales.slice(0, MKT.page * MKT.perPage);
+  $("mktCount").innerHTML = `<b>${MKT.sales.length}</b> listing${MKT.sales.length===1?"":"s"}`;
+  const hasMore = shown.length < MKT.sales.length;
+  const canShrink = MKT.page > 1;
+  $("mktMoreWrap").classList.toggle("hide", !hasMore && !canShrink);
+  $("mktMore").classList.toggle("hide", !hasMore);
+  $("mktLess").classList.toggle("hide", !canShrink);
+  if (!shown.length) {
+    $("mktGrid").innerHTML = "";
+    $("mktEmpty").innerHTML = `<svg class="ic"><use href="#g-tag"/></svg><div>No listings yet.</div><div class="sub" style="margin-top:4px">When NFTs go up for sale on this network, they'll show here.</div>`;
+    $("mktEmpty").classList.remove("hide");
+    return;
+  }
+  $("mktEmpty").classList.add("hide");
+  $("mktGrid").innerHTML = shown.map(marketTile).join("");
+  for (const card of $("mktGrid").querySelectorAll(".nft")) {
+    const sale = MKT.sales.find((s) => String(s.sale_id) === card.dataset.sale);
+    card.onclick = () => openListingSheet(sale);
+    card.onkeydown = (e) => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); openListingSheet(sale); } };
+    const buyBtn = card.querySelector(".buy");
+    if (buyBtn && !buyBtn.disabled) buyBtn.onclick = (e) => { e.stopPropagation(); buyListing(sale.sale_id); };
+    const cancelBtn = card.querySelector(".cancel");
+    if (cancelBtn) cancelBtn.onclick = (e) => { e.stopPropagation(); cancelListing(sale.sale_id); };
+  }
+}
+
+function openListingSheet(sale) {
+  if (!sale) return;
+  const asset = (sale.assets && sale.assets[0]) || {};
+  const mine = STATE.active && sale.seller === STATE.active;
+  const media = asset.media && (asset.media.url || asset.media.thumb);
+  const name = asset.name || `Sale #${sale.sale_id}`;
+  const col = sale.collection || asset.collection || "—";
+  const priceDisp = salePriceStr(sale);
+  const heroImg = media ? `<img src="${escapeHtml(proxyUrl(media))}" alt="" onerror="this.style.display='none';this.parentElement.querySelector('.glyph').classList.remove('hide')" />` : "";
+  const usd = (MKT.usdRate != null && sale.price) ? `≈ $${(sale.price.amount*MKT.usdRate).toLocaleString(undefined,{maximumFractionDigits:2})}` : null;
+  const kv = (kk, vv, emph) => `<div class="sign-kv"><span class="k">${kk}</span><span class="v"${emph?' style="font-weight:800;color:var(--fg)"':""}>${vv}</span></div>`;
+  const ids = (sale.asset_ids||[]);
+  const cta = mine
+    ? `<button class="btn ghost" id="lsCancel"><svg class="ic"><use href="#g-x"/></svg> Cancel listing</button>`
+    : `<button class="btn" id="lsBuy"><svg class="ic"><use href="#g-tag"/></svg> Buy now</button>`;
+  openSheet(`
+    <div class="ls-hero" style="background:${collectionGradient(col)}">${heroImg}<svg class="glyph ${media?"hide":""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>${mine?`<span class="badge mine">YOURS</span>`:`<span class="badge sale">FOR SALE</span>`}</div>
+    <h3>${escapeHtml(name)}</h3>
+    <div class="sh-sub"><svg class="ic" style="width:12px;height:12px;vertical-align:-1px"><use href="#g-grid"/></svg> ${escapeHtml(col)}${ids.length>1?` · ${ids.length} NFTs`:""}</div>
+    <div style="margin-top:12px">
+      ${kv("Price", `<b style="color:var(--acc)">${escapeHtml(priceDisp)}</b>`)}
+      ${usd?kv("≈ USD", `<span class="muted">${usd}</span>`):""}
+      ${kv("Seller", escapeHtml(sale.seller||"—"))}
+      ${kv("Sale #", escapeHtml(String(sale.sale_id)))}
+      ${mine ? "" : kv("You pay", `<b style="color:var(--acc)">${escapeHtml(priceDisp)}</b>`, true)}
+    </div>
+    <div style="margin-top:14px">${cta}</div>
+    <div class="msg hide" id="lsBuyMsg" style="margin-top:10px"></div>
+    <button class="btn ghost sm" id="lsExplorer" style="margin-top:8px"><svg class="ic"><use href="#g-external"/></svg> View on AtomicHub</button>
+  `);
+  // keep this sheet open so an engine error (stale sale, etc.) shows inline; on success
+  // openSignSheet replaces the sheet content with the amber Sign step.
+  if (!mine && $("lsBuy")) $("lsBuy").onclick = () => buyListing(sale.sale_id, $("lsBuyMsg"));
+  if (mine && $("lsCancel")) $("lsCancel").onclick = () => cancelListing(sale.sale_id, $("lsBuyMsg"));
+  $("lsExplorer").onclick = () => {
+    const base = /mainnet/.test(STATE.chain.id||"") ? "https://wax.atomichub.io" : "https://wax-test.atomichub.io";
+    openExt(`${base}/market/sale/${encodeURIComponent(sale.sale_id)}`);
+  };
+}
+
+async function buyListing(saleId, msgEl) {
+  const tgt = msgEl || $("mktMsg");   // inline, no alert() — engine errors are {ok:false,msg} (contract §6)
+  if (!STATE.active) { flash(tgt, "Pick an account first.", false); return; }
+  if (!STATE.unlocked) { $("gate").classList.remove("hide"); return; }
+  const r = await cmd("market-buy", { sale_id: saleId, buyer: STATE.active });
+  if (r.ok && r.intent) openSignSheet(r.intent);
+  else flash(tgt, escapeHtml(r.msg || "Could not prepare the purchase."), false);
+}
+
+// Cancel a listing you own — only your own sales render a Cancel button (mine
+// guard in marketTile/openListingSheet), and the engine re-asserts seller ===
+// signer, so this can't pull someone else's sale. Same inline-error path as buy.
+async function cancelListing(saleId, msgEl) {
+  const tgt = msgEl || $("mktMsg");
+  if (!STATE.active) { flash(tgt, "Pick an account first.", false); return; }
+  if (!STATE.unlocked) { $("gate").classList.remove("hide"); return; }
+  const r = await cmd("market-cancel", { sale_id: saleId, from: STATE.active });
+  if (r.ok && r.intent) openSignSheet(r.intent);
+  else flash(tgt, escapeHtml(r.msg || "Could not prepare the cancellation."), false);
+}
+
+/* ── Sell flow: list an owned NFT (asset detail → list-price sheet → Sign) ── */
+function openListSheet(asset) {
+  if (!asset) return;
+  if (!isWax()) { flash($("assetMsg"), "Listing runs on WAX only — switch to a wax-* network.", false); return; }
+  const sym = STATE.chain.coreSymbol;
+  const media = asset.image_url || (asset.media && asset.media.url);
+  const heroImg = media ? `<img src="${escapeHtml(proxyUrl(media))}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'" />` : "";
+  const name = asset.name || `${asset.collection} #${asset.asset_id}`;
+  const mint = asset.template_mint ? `#${asset.template_mint}` : `#${asset.asset_id}`;
+  openSheet(`
+    <h3>List "${escapeHtml(name)}" for sale</h3>
+    <div class="sh-sub">${escapeHtml(asset.collection||"")} · ${escapeHtml(mint)}</div>
+    <div class="sheet-row" style="margin-top:12px;cursor:default">
+      <div class="art" style="width:48px;height:48px;border-radius:12px;overflow:hidden;background:${collectionGradient(asset.collection)};flex:0 0 auto;display:flex;align-items:center;justify-content:center">${heroImg}</div>
+      <span class="nm"><b>${escapeHtml(name)}</b><small style="display:block;color:var(--mut)">${escapeHtml(asset.collection||"")}${asset.rarity?` · ${escapeHtml(asset.rarity)}`:""}</small></span>
+    </div>
+    <div class="lbl" style="margin:14px 0 6px">Price</div>
+    <div class="dual">
+      <div class="amtwrap"><input id="lsPrice" placeholder="0.0000" inputmode="decimal" autocomplete="off" /></div>
+      <div class="unit-toggle"><button type="button" class="on" style="cursor:default">${escapeHtml(sym)}</button></div>
+    </div>
+    <div class="calcline" id="lsReceive" style="margin-top:8px">Set your asking price in ${escapeHtml(sym)}</div>
+    <button class="btn" id="lsDoList" style="margin-top:14px"><svg class="ic"><use href="#g-tag"/></svg> List for sale</button>
+    <div class="msg hide" id="lsMsg"></div>
+  `);
+  const recalc = () => {
+    const v = Number($("lsPrice").value);
+    // testnet: maker_marketplace is null → no marketplace fee, so we don't fabricate a
+    // "you receive" net. Just echo the asking price (honest; matches MEMO-market-ui-contract §4).
+    $("lsReceive").innerHTML = v > 0
+      ? `Listing price <b>${v.toLocaleString(undefined,{maximumFractionDigits:8})} ${escapeHtml(sym)}</b>${MKT.usdRate?` · <span class="muted">≈ $${(v*MKT.usdRate).toLocaleString(undefined,{maximumFractionDigits:2})}</span>`:""}`
+      : `Set your asking price in ${escapeHtml(sym)}`;
+  };
+  $("lsPrice").addEventListener("input", recalc);
+  setTimeout(() => $("lsPrice").focus(), 50);
+  $("lsDoList").onclick = async () => {
+    const v = Number($("lsPrice").value);
+    if (!(v > 0)) { flash($("lsMsg"), "Enter a price greater than zero.", false); return; }
+    if (!STATE.unlocked) { closeSheet(); $("gate").classList.remove("hide"); return; }
+    $("lsDoList").disabled = true; $("lsDoList").innerHTML = "Preparing…";
+    const r = await cmd("market-list", { seller: STATE.active, asset_ids: [asset.asset_id], price: String(v) });
+    if (r.ok && r.intent) { closeSheet(); openSignSheet(r.intent); }
+    else { $("lsDoList").disabled = false; $("lsDoList").innerHTML = `<svg class="ic"><use href="#g-tag"/></svg> List for sale`; flash($("lsMsg"), escapeHtml(r.msg||"Could not prepare the listing."), false); }
+  };
+}
+
+/* market controls wiring */
+for (const b of $("invModeSeg").querySelectorAll("button")) b.onclick = () => switchInvMode(b.dataset.mode);
+$("assetList").onclick = () => { const a = INV.currentAsset; if (!a) return; if (!STATE.active) { flash($("assetMsg"), "Pick an account first.", false); return; } openListSheet(a); };
+$("mktSearch").addEventListener("input", () => { MKT.search = $("mktSearch").value; });
+$("mktSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") loadMarket(true); });
+$("mktRefresh").onclick = () => loadMarket(true);
+$("mktMore").onclick = () => { MKT.page++; renderMarketGrid(); };
+$("mktLess").onclick = () => { MKT.page = 1; renderMarketGrid(); };
+$("mktViewGrid").onclick = () => { MKT.view = "grid"; $("mktViewGrid").classList.add("on"); $("mktViewList").classList.remove("on"); renderMarketGrid(); };
+$("mktViewList").onclick = () => { MKT.view = "list"; $("mktViewGrid").classList.remove("on"); $("mktViewList").classList.add("on"); renderMarketGrid(); };
+$("mktSort").onclick = () => {
+  const rows = MKT_SORTS.map((o,i) => `<div class="sheet-row ${MKT.sort===o.sort&&MKT.order===o.order?"active":""}" data-i="${i}" style="margin-top:8px"><span class="nm"><b>${escapeHtml(o.label)}</b></span>${MKT.sort===o.sort&&MKT.order===o.order?`<svg class="ic ck"><use href="#g-check"/></svg>`:""}</div>`).join("");
+  openSheet(`<h3>Sort listings</h3><div class="sh-sub">Choose the order</div>${rows}`);
+  for (const row of document.querySelectorAll(".sheet-row[data-i]")) row.onclick = () => {
+    const o = MKT_SORTS[Number(row.dataset.i)]; MKT.sort = o.sort; MKT.order = o.order;
+    $("mktSort").textContent = "Sort: " + o.label; closeSheet(); loadMarket(true);
+  };
+};
+$("mktColPick").onclick = () => {
+  const cols = [...new Set(MKT.sales.map((s) => s.collection).filter(Boolean))].sort();
+  const items = [{value:"",label:"All collections"}, ...cols.map((c)=>({value:c,label:c}))];
+  const rows = items.map((it) => `<div class="sheet-row ${MKT.collection===it.value?"active":""}" data-val="${escapeHtml(it.value)}" style="margin-top:8px"><span class="nm"><b>${escapeHtml(it.label)}</b></span>${MKT.collection===it.value?`<svg class="ic ck"><use href="#g-check"/></svg>`:""}</div>`).join("");
+  openSheet(`<h3>Collection</h3><div class="sh-sub">Filter listings</div>${rows}`);
+  for (const row of document.querySelectorAll(".sheet-row[data-val]")) row.onclick = () => {
+    MKT.collection = row.dataset.val; $("mktColLbl").textContent = row.dataset.val || "All"; closeSheet(); loadMarket(true);
+  };
+};
+
 const _origShowScreen = showScreen;
 showScreen = function(name) {
   _origShowScreen(name);
-  if (name === "inventory") loadInventory();
+  if (name === "inventory") { if (INV.mode === "market") loadMarket(); else loadInventory(); }
 };
 
 
