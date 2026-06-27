@@ -45,76 +45,119 @@ const CHAINS = {
   "wax-testnet": {
     id: "wax-testnet", name: "WAX Testnet", kind: "testnet",
     rpc: "https://testnet.waxsweden.org",
+    rpcs: ["https://waxtestnet.greymass.com", "https://wax-testnet.eosphere.io", "https://testnet.wax.pink.gg"],
     history: "https://testnet.waxsweden.org",
+    historys: ["https://wax-testnet.eosphere.io"],
     chainId: "f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12",
     explorerTx: "https://testnet.waxblock.io/transaction/",
     explorerTxFallback: "https://wax-test.bloks.io/transaction/",
     coreSymbol: "WAX", corePrecision: 8,
+    features: { atomicAssets: true, atomicMarket: true },
+    atomicAssets: {
+      assetsContract: "atomicassets",
+      marketContract: "atomicmarket",
+      apiPath: "/atomicassets/v1",
+      marketApiPath: "/atomicmarket/v1",
+      endpoints: ["https://test.wax.api.atomicassets.io"],
+    },
   },
   "wax-mainnet": {
     id: "wax-mainnet", name: "WAX Mainnet", kind: "mainnet",
     rpc: "https://wax.greymass.com",
+    rpcs: ["https://wax.eosphere.io", "https://wax.pink.gg", "https://wax.cryptolions.io"],
     history: "https://wax.eosphere.io",
+    historys: ["https://wax.greymass.com"],
     chainId: "1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4",
     explorerTx: "https://waxblock.io/transaction/",
     explorerTxFallback: "https://wax.bloks.io/transaction/",
     coreSymbol: "WAX", corePrecision: 8,
+    features: { atomicAssets: true, atomicMarket: true },
+    atomicAssets: {
+      assetsContract: "atomicassets",
+      marketContract: "atomicmarket",
+      apiPath: "/atomicassets/v1",
+      marketApiPath: "/atomicmarket/v1",
+      endpoints: [
+        "https://atomic.wax.eosrio.io",      // verified OK, in sync
+        "https://wax-atomic-api.eosphere.io", // verified OK, in sync
+        "https://wax-aa.eu.eosamsterdam.net", // verified OK
+        "https://wax.api.atomicassets.io",   // official pink.network; may be blocked by CDN
+      ],
+    },
   },
   "eos-testnet": { // Jungle4
     id: "eos-testnet", name: "EOS Jungle4 (testnet)", kind: "testnet",
     rpc: "https://jungle4.greymass.com",
+    rpcs: ["https://jungle4.eosusa.io", "https://jungle4.eosdac.io"],
     history: "https://jungle4.history.eosnation.io",
+    historys: ["https://jungle4.greymass.com"],
     chainId: "73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d",
     explorerTx: "https://jungle4.eosq.eosnation.io/tx/",
     explorerTxFallback: "https://jungle4.bloks.io/transaction/",
     coreSymbol: "EOS", corePrecision: 4,
+    features: { atomicAssets: false, atomicMarket: false },
   },
   "eos-mainnet": {
     id: "eos-mainnet", name: "EOS Mainnet", kind: "mainnet",
     rpc: "https://eos.greymass.com",
+    rpcs: ["https://eos.eosphere.io", "https://eos.api.eosnation.io", "https://eos.eosusa.io"],
     history: "https://eos.hyperion.eosrio.io",
+    historys: ["https://eos.eosphere.io", "https://eos.api.eosnation.io"],
     chainId: "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906",
     explorerTx: "https://bloks.io/transaction/",
     explorerTxFallback: "https://eos.eosq.eosnation.io/tx/",
     coreSymbol: "EOS", corePrecision: 4,
+    features: { atomicAssets: false, atomicMarket: false },
   },
   // Telos — RPC + Hyperion v2 share one host (live-verified 2026-06-24).
   "telos-testnet": {
     id: "telos-testnet", name: "Telos Testnet", kind: "testnet",
     rpc: "https://testnet.telos.net",
+    rpcs: ["https://telos-testnet.eosphere.io"],
     history: "https://testnet.telos.net",
+    historys: ["https://telos-testnet.eosphere.io"],
     chainId: "1eaa0824707c8c16bd25145493bf062aecddfeb56c736f6ba6397f3195f33c9f",
     explorerTx: "https://explorer.telos.net/transaction/",
     explorerTxFallback: "https://telos-test.bloks.io/transaction/",
     coreSymbol: "TLOS", corePrecision: 4,
+    features: { atomicAssets: false, atomicMarket: false },
   },
   "telos-mainnet": {
     id: "telos-mainnet", name: "Telos Mainnet", kind: "mainnet",
     rpc: "https://mainnet.telos.net",
+    rpcs: ["https://telos.eosphere.io", "https://telos.api.eosnation.io"],
     history: "https://mainnet.telos.net",
+    historys: ["https://telos.eosphere.io", "https://telos.api.eosnation.io"],
     chainId: "4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11",
     explorerTx: "https://explorer.telos.net/transaction/",
     explorerTxFallback: "https://telos.bloks.io/transaction/",
     coreSymbol: "TLOS", corePrecision: 4,
+    features: { atomicAssets: false, atomicMarket: false },
   },
   // XPR Network (Proton) — RPC (eosusa) + Hyperion (saltant) on separate hosts.
   "xpr-testnet": {
     id: "xpr-testnet", name: "XPR Network Testnet", kind: "testnet",
     rpc: "https://test.proton.eosusa.io",
+    rpcs: ["https://proton-testnet.eosphere.io"],
     history: "https://test.proton.eosusa.io",
+    historys: [],
     chainId: "71ee83bcf52142d61019d95f9cc5427ba6a0d7ff8accd9e2088ae2abeaf3d3dd",
     explorerTx: "https://explorer.xprnetwork.org/transaction/",
     explorerTxFallback: "https://proton-test.bloks.io/transaction/",
     coreSymbol: "XPR", corePrecision: 4,
+    features: { atomicAssets: false, atomicMarket: false },
   },
   "xpr-mainnet": {
     id: "xpr-mainnet", name: "XPR Network (Proton)", kind: "mainnet",
     rpc: "https://proton.eosusa.io",
+    rpcs: ["https://proton.cryptolions.io"],
     history: "https://api-xprnetwork-main.saltant.io",
+    historys: [],
     chainId: "384da888112027f0321850a169f737c33e53b388aad48b5adace4bab97f437e0",
     explorerTx: "https://explorer.xprnetwork.org/transaction/",
     explorerTxFallback: "https://proton.bloks.io/transaction/",
     coreSymbol: "XPR", corePrecision: 4,
+    features: { atomicAssets: false, atomicMarket: false },
   },
 };
 const DEFAULT_NET = "wax-testnet"; // boss order — default network on a fresh store
@@ -127,12 +170,26 @@ function modChain(c) {
   return { id: c.id, symbol: c.coreSymbol, precision: c.corePrecision, contract: "eosio" };
 }
 
+// Per-chain feature flags for optional subsystems.
+function chainFeatures(chain) {
+  const aa = !!(chain.atomicAssets && chain.features?.atomicAssets);
+  return {
+    atomicAssets: aa,
+    atomicMarket: aa && !!(chain.atomicAssets?.marketContract && chain.features?.atomicMarket),
+  };
+}
+function assetsContract(chain) { return chain.atomicAssets?.assetsContract || "atomicassets"; }
+function marketContract(chain) { return chain.atomicAssets?.marketContract || "atomicmarket"; }
+function aaApiPath(chain) { return chain.atomicAssets?.apiPath || "/atomicassets/v1"; }
+function marketApiPath(chain) { return chain.atomicAssets?.marketApiPath || "/atomicmarket/v1"; }
+
 // Public, key-safe view of a chain config (sent to the panel).
 function publicChain(c) {
   return {
     id: c.id, name: c.name, kind: c.kind, rpc: c.rpc,
     chainId: c.chainId, explorerTx: c.explorerTx, explorerTxFallback: c.explorerTxFallback,
     coreSymbol: c.coreSymbol, corePrecision: c.corePrecision,
+    features: chainFeatures(c),
   };
 }
 
@@ -175,9 +232,141 @@ async function wharf() {
 const closeFetch = (url, opts = {}) =>
   fetch(url, { ...opts, headers: { ...(opts.headers || {}), connection: "close" } });
 
+// ── RPC endpoint health + automatic fallback rotation ──────────────────
+// Each chain has a primary `rpc` plus an `rpcs` failover list. Before every
+// call we check the cache (TTL 60 s); on cache miss we health-check every
+// candidate with get_info (5 s timeout each). The first healthy one is
+// cached and written back to chain.rpc in-place so wharfkit Sessions pick it
+// up too. On any rpc() network failure we invalidate the cache + re-run the
+// health check so the next call rotates automatically.
+// Same pattern for history (Hyperion v2) endpoints with a 120 s TTL.
+// — Yamamoto flag, PLATFORM-ARCHITECTURE.md §RPC
+const _rpcHealth = new Map();           // netId → { url, ts }
+const RPC_HEALTH_TTL_MS = 60_000;       // re-verify every 60 s
+const RPC_HEALTH_TIMEOUT_MS = 5_000;    // per-candidate timeout
+
+function _rpcCandidates(chain) {
+  const seen = new Set();
+  const out = [];
+  if (chain.rpc) { seen.add(chain.rpc); out.push(chain.rpc); }
+  if (Array.isArray(chain.rpcs)) {
+    for (const url of chain.rpcs) {
+      if (!seen.has(url)) { seen.add(url); out.push(url); }
+    }
+  }
+  return out;
+}
+
+async function _pickHealthyRpc(chain) {
+  // Warm cache — return instantly
+  const cached = _rpcHealth.get(chain.id);
+  if (cached && (Date.now() - cached.ts) < RPC_HEALTH_TTL_MS) {
+    chain.rpc = cached.url;
+    return cached.url;
+  }
+
+  const candidates = _rpcCandidates(chain);
+  if (!candidates.length) throw new Error(`no RPC endpoints configured for ${chain.id}`);
+
+  const errors = [];
+  for (const url of candidates) {
+    try {
+      const ctl = new AbortController();
+      const tm = setTimeout(() => ctl.abort(), RPC_HEALTH_TIMEOUT_MS);
+      const res = await fetch(`${url}/v1/chain/get_info`, {
+        method: "POST",
+        headers: { "content-type": "application/json", connection: "close" },
+        body: JSON.stringify({}),
+        signal: ctl.signal,
+      });
+      clearTimeout(tm);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json.chain_id) throw new Error("no chain_id in response");
+      if (json.chain_id !== chain.chainId) {
+        throw new Error(`chain_id mismatch (got ${String(json.chain_id).slice(0, 14)}…)`);
+      }
+      // Healthy — cache and update chain.rpc in-place
+      _rpcHealth.set(chain.id, { url, ts: Date.now() });
+      chain.rpc = url;
+      return url;
+    } catch (e) {
+      errors.push(`${url}: ${(e && e.message) || e}`);
+    }
+  }
+
+  _rpcHealth.delete(chain.id);
+  throw new Error(`all ${candidates.length} RPC endpoint(s) unreachable for ${chain.id}: ${errors.join("; ")}`);
+}
+
+function _invalidateRpc(netId) { _rpcHealth.delete(netId); }
+
+// ── History (Hyperion v2) endpoint health — same pattern, longer TTL ──
+const _historyHealth = new Map();
+const HISTORY_HEALTH_TTL_MS = 120_000;
+
+function _historyCandidates(chain) {
+  const seen = new Set();
+  const out = [];
+  if (chain.history) { seen.add(chain.history); out.push(chain.history); }
+  if (Array.isArray(chain.historys)) {
+    for (const url of chain.historys) {
+      if (!seen.has(url)) { seen.add(url); out.push(url); }
+    }
+  }
+  return out;
+}
+
+async function _pickHealthyHistory(chain) {
+  const cached = _historyHealth.get(chain.id);
+  if (cached && (Date.now() - cached.ts) < HISTORY_HEALTH_TTL_MS) {
+    chain.history = cached.url;
+    return cached.url;
+  }
+
+  const candidates = _historyCandidates(chain);
+  if (!candidates.length) throw new Error(`no history endpoints configured for ${chain.id}`);
+
+  const errors = [];
+  for (const url of candidates) {
+    try {
+      const ctl = new AbortController();
+      const tm = setTimeout(() => ctl.abort(), RPC_HEALTH_TIMEOUT_MS);
+      const res = await fetch(`${url}/v2/health`, {
+        headers: { connection: "close" },
+        signal: ctl.signal,
+      });
+      clearTimeout(tm);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json || typeof json !== "object") throw new Error("invalid health response");
+      _historyHealth.set(chain.id, { url, ts: Date.now() });
+      chain.history = url;
+      return url;
+    } catch (e) {
+      errors.push(`${url}: ${(e && e.message) || e}`);
+    }
+  }
+
+  _historyHealth.delete(chain.id);
+  throw new Error(`all ${candidates.length} history endpoint(s) unreachable for ${chain.id}: ${errors.join("; ")}`);
+}
+
+function _invalidateHistory(netId) { _historyHealth.delete(netId); }
+
 // ── Read-only chain RPC (no key involved); chain-scoped ──────────────
+// Uses _pickHealthyRpc to ensure the endpoint is alive before calling. On
+// network failure the cache is invalidated and a fresh health check picks
+// the next candidate, so a dead node only costs one retry.
 async function rpc(chain, endpoint, body, _retried) {
-  const url = `${chain.rpc}/v1/chain/${endpoint}`;
+  let rpcUrl;
+  try {
+    rpcUrl = await _pickHealthyRpc(chain);
+  } catch (e) {
+    throw new Error(`RPC unreachable (${chain.id}): ${e.message}`);
+  }
+
+  const url = `${rpcUrl}/v1/chain/${endpoint}`;
   let res;
   try {
     res = await fetch(url, {
@@ -186,7 +375,11 @@ async function rpc(chain, endpoint, body, _retried) {
       body: JSON.stringify(body || {}),
     });
   } catch (e) {
-    if (!_retried) return rpc(chain, endpoint, body, true); // RPC drops idle sockets
+    if (!_retried) {
+      // Rotate: clear the cached healthy endpoint + re-run health check
+      _invalidateRpc(chain.id);
+      return rpc(chain, endpoint, body, true);
+    }
     throw new Error(`RPC unreachable (${chain.id}): ${e?.cause?.code || e.message}`);
   }
   const text = await res.text();
@@ -428,13 +621,22 @@ async function tokenBalance(chain, name, symbol, contract) {
 }
 
 // Tx history via Hyperion v2 (best-effort: not every node runs history).
-async function history(chain, name, limit) {
+async function history(chain, name, limit, _retried) {
   if (!name) throw new Error("account name required");
   const n = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
-  const url = `${chain.history}/v2/history/get_actions?account=${encodeURIComponent(name)}&limit=${n}&simple=true&sort=desc`;
+  let historyUrl;
+  try {
+    historyUrl = await _pickHealthyHistory(chain);
+  } catch (e) {
+    throw new Error(`history endpoint unreachable (${chain.id}): ${e.message}`);
+  }
+  const url = `${historyUrl}/v2/history/get_actions?account=${encodeURIComponent(name)}&limit=${n}&simple=true&sort=desc`;
   let res;
   try { res = await fetch(url, { headers: { connection: "close" } }); }
-  catch (e) { throw new Error(`history endpoint unreachable: ${e?.cause?.code || e.message}`); }
+  catch (e) {
+    if (!_retried) { _invalidateHistory(chain.id); return history(chain, name, limit, true); }
+    throw new Error(`history endpoint unreachable: ${e?.cause?.code || e.message}`);
+  }
   if (!res.ok) throw new Error(`history HTTP ${res.status} (node may not run Hyperion)`);
   const json = await res.json();
   const acts = json.simple_actions || json.actions || [];
@@ -457,12 +659,21 @@ async function history(chain, name, limit) {
 // Anchor-style: when you import/create a key, we query the chain to find
 // which accounts it controls, then auto-bind them. No more manual setaccount.
 // Also provides full token balances (not just core symbol) for overview.
-async function hyperionGet(chain, endpoint, params) {
+async function hyperionGet(chain, endpoint, params, _retried) {
   const qs = Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
-  const url = `${chain.history}/v2/state/${endpoint}?${qs}`;
+  let historyUrl;
+  try {
+    historyUrl = await _pickHealthyHistory(chain);
+  } catch (e) {
+    throw new Error(`Hyperion unreachable (${chain.id}): ${e.message}`);
+  }
+  const url = `${historyUrl}/v2/state/${endpoint}?${qs}`;
   let res;
   try { res = await fetch(url, { headers: { connection: "close" } }); }
-  catch (e) { throw new Error(`Hyperion unreachable (${chain.id}): ${e?.cause?.code || e.message}`); }
+  catch (e) {
+    if (!_retried) { _invalidateHistory(chain.id); return hyperionGet(chain, endpoint, params, true); }
+    throw new Error(`Hyperion unreachable (${chain.id}): ${e?.cause?.code || e.message}`);
+  }
   if (!res.ok) {
     // 404 / empty response = no data (not an error — the key/account simply has none)
     if (res.status === 404 || res.status === 204) return {};
@@ -680,22 +891,363 @@ function primaryImageUrl(immutable, templateImmutable) {
   return m && (m.type === "image" || m.type === "video" || m.type === "glb") ? m.url : null;
 }
 
-// ── AtomicAssets NFT inventory (Phase A) ─────────────────────────────
-// Read + decode an account's assets directly from the AtomicAssets
-// contract. Pagination follows get_table_rows next_key. Filters are
-// applied client-side (the chain table has no usable secondary index for
-// collection/schema). Schema/template metadata is cached in memory for
-// 30s only — never written to disk (privacy decision).
+// ── Light Marketplace (AtomicMarket) — WAX only, testnet default ─────
+// The read side (browse/listing/price) goes through the AtomicMarket HTTP
+// indexer (layer b): it does the filter/sort/pagination the on-chain table
+// can't. The write side (list/buy) builds sign-intents grounded in the LIVE
+// atomicmarket/atomicassets ABI (verified 2026-06-26, not guessed) and shares
+// the same confirm gate — nothing broadcasts here. Media CIDs from the indexer
+// are already decoded CIDv0 (Qm…), so they flow straight through ipfsUrl() like
+// inventory media. AtomicMarket runs on WAX only, so the commands hard-refuse on
+// other chains rather than hit a 404.
+//
+// AA/AM endpoints and contract names now live in each chain's `atomicAssets`
+// block so chains without AtomicAssets (EOS/Telos/XPR today) simply return
+// features.atomicAssets/atomicMarket=false instead of throwing.
+
+function aaReadOf(chain) {
+  const cfg = chain.atomicAssets;
+  if (!cfg || !Array.isArray(cfg.endpoints) || !cfg.endpoints.length) {
+    throw new Error(`AtomicAssets read API not available on ${chain.name} — switch to a wax-* network`);
+  }
+  return cfg;
+}
+
+// Helper: fetch with a timeout without depending on AbortSignal.timeout availability.
+function fetchWithTimeout(url, ms = 10000, init = {}) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(t));
+}
+
+// Quick health probe: returns true only if the host is reachable, returns valid JSON,
+// data.chain.status is "OK", and head_block is within maxLag of the provided tip.
+async function aaHealthOk(base, tip, maxLag = 120) {
+  let res;
+  try { res = await fetchWithTimeout(`${base}/health`, 8000, { headers: { connection: "close" } }); }
+  catch { return false; }
+  if (!res.ok) return false;
+  let json;
+  try { json = await res.json(); } catch { return false; }
+  if (!json || json.success !== true) return false;
+  const head = json.data?.chain?.head_block;
+  if (!head || json.data?.chain?.status !== "OK") return false;
+  if (tip != null && Math.abs(Number(tip) - Number(head)) > maxLag) return false;
+  return true;
+}
+
+// Fetch a path from the AtomicAssets/AtomicMarket HTTP API, walking the endpoint chain
+// until one succeeds. If no endpoint is healthy, falls back to trying them without a
+// health probe (best-effort) so transient health failures don't hard-block reads.
+async function atomicApiGet(chain, namespacePath, { requireHealth = false } = {}) {
+  const cfg = aaReadOf(chain);
+  const errors = [];
+  for (const base of cfg.endpoints) {
+    const url = `${base}${namespacePath}`;
+    try {
+      const res = await fetchWithTimeout(url, 15000, { headers: { connection: "close" } });
+      if (!res.ok) { errors.push(`${base}: HTTP ${res.status}`); continue; }
+      const json = await res.json();
+      if (json && json.success === false) { errors.push(`${base}: API error ${json.message || "unknown"}`); continue; }
+      if (json && json.success === true) return json;
+      errors.push(`${base}: unexpected response`);
+    } catch (e) {
+      errors.push(`${base}: ${e?.cause?.code || e.message}`);
+    }
+  }
+  throw new Error(`AtomicAssets API unreachable (${chain.id}): ${errors.join("; ")}`);
+}
+
+function marketOf(chain) {
+  const cfg = aaReadOf(chain);
+  return { contract: cfg.marketContract };
+}
+
+async function marketApiGet(chain, pathSuffix) {
+  const json = await atomicApiGet(chain, `${marketApiPath(chain)}${pathSuffix}`);
+  return json;
+}
+
+// Indexer price object → human view (decimal amount from raw + precision).
+function marketPriceView(price) {
+  if (!price) return null;
+  const prec = Number(price.token_precision || 0);
+  const amount = Number(price.amount || 0) / Math.pow(10, prec);
+  return {
+    amount,
+    display: `${amount.toFixed(prec)} ${price.token_symbol}`,
+    token_symbol: price.token_symbol,
+    token_precision: prec,
+    token_contract: price.token_contract,
+    raw: String(price.amount),
+  };
+}
+
+// One indexer asset → compact card. CID (img/image/backimg) is decoded CIDv0 already.
+// Uses extractMedia for template-fallback — when the asset itself has no media,
+// the template's immutable_data often carries the canonical image. Collection img
+// is the ultimate fallback so junk testnet entries without any image at least show
+// the collection logo instead of a blank placeholder.
+function marketAssetView(a) {
+  const data = a.data || {};
+  // Template fallback: when the asset's own data has no media field, the
+  // template's immutable_data often carries the canonical image (same pattern
+  // as apiAssetView→extractMedia). The API's `data` merge usually already
+  // includes template fields, but this is hardening — if the merge is ever
+  // incomplete, the template provides a safety net.
+  const templateImmutable = (a.template && a.template.immutable_data) ? a.template.immutable_data : {};
+  const foundMedia = extractMedia(data, templateImmutable);
+
+  // Recover the raw CID from whichever field extractMedia picked — we need it
+  // for the thumbnail gateway (ipfsUrl with thumbnail:true) since
+  // extractMedia's url is already the full-size gateway URL.
+  let cid = null;
+  if (foundMedia) {
+    const f = foundMedia.field;
+    cid = data[f] || templateImmutable[f] || null;
+  }
+
+  // Collection image as ultimate fallback: when neither asset data nor the
+  // template carries an image, the collection often has a logo (img /
+  // images.logo_512x512) that gives the tile a meaningful visual instead of
+  // a blank placeholder.
+  if (!cid && a.collection) {
+    let colImg = a.collection.img;
+    if (!colImg && a.collection.images) {
+      try {
+        const imgs = typeof a.collection.images === "string"
+          ? JSON.parse(a.collection.images)
+          : a.collection.images;
+        colImg = imgs.logo_512x512 || imgs.banner_1920x500 || null;
+      } catch { /* malformed images JSON — stay null */ }
+    }
+    if (colImg) cid = String(colImg).trim() || null;
+  }
+
+  return {
+    asset_id: String(a.asset_id),
+    name: a.name || data.name || null,
+    collection: (a.collection && a.collection.collection_name) || a.collection_name || null,
+    schema: (a.schema && a.schema.schema_name) || null,
+    template_id: (a.template && a.template.template_id) || null,
+    media: cid
+      ? { type: detectMediaType(String(cid)), url: resolveMediaUrl(String(cid)), thumb: ipfsUrl(String(cid), { thumbnail: true }) }
+      : null,
+  };
+}
+
+function marketSaleView(s) {
+  const assets = Array.isArray(s.assets) ? s.assets : [];
+  return {
+    sale_id: String(s.sale_id),
+    state: s.state,
+    seller: s.seller,
+    buyer: s.buyer || null,
+    price: marketPriceView(s.price),
+    collection: (s.collection && s.collection.collection_name) || s.collection_name || null,
+    asset_ids: assets.map((x) => String(x.asset_id)),
+    assets: assets.map(marketAssetView),
+    maker_marketplace: s.maker_marketplace || null,
+    created_at_time: s.created_at_time,
+    updated_at_time: s.updated_at_time,
+  };
+}
+
+// market-browse — active sales with filter/sort. state defaults to 1 (LISTED).
+async function marketBrowse(chain, opts = {}) {
+  const q = new URLSearchParams();
+  q.set("state", opts.state != null && opts.state !== "" ? String(opts.state) : "1");
+  q.set("limit", String(Math.min(Math.max(parseInt(opts.limit, 10) || 40, 1), 100)));
+  q.set("page", String(Math.max(parseInt(opts.page, 10) || 1, 1)));
+  const sort = ["price", "created", "updated", "template_mint"].includes(opts.sort) ? opts.sort : "created";
+  q.set("sort", sort);
+  q.set("order", opts.order === "asc" ? "asc" : opts.order === "desc" ? "desc" : sort === "price" ? "asc" : "desc");
+  if (opts.collection) q.set("collection_name", String(opts.collection).trim());
+  if (opts.schema) q.set("schema_name", String(opts.schema).trim());
+  if (opts.template_id != null && opts.template_id !== "") q.set("template_id", String(opts.template_id));
+  if (opts.seller) q.set("seller", String(opts.seller).trim());
+  // min/max price are DECIMAL token units and require a symbol — default to core.
+  const needSym = (opts.min_price != null && opts.min_price !== "") || (opts.max_price != null && opts.max_price !== "");
+  const symbol = opts.symbol ? String(opts.symbol).trim().toUpperCase() : (needSym ? chain.coreSymbol : null);
+  if (symbol) q.set("symbol", symbol);
+  if (opts.min_price != null && opts.min_price !== "") q.set("min_price", String(opts.min_price));
+  if (opts.max_price != null && opts.max_price !== "") q.set("max_price", String(opts.max_price));
+  if (opts.search) q.set("match", String(opts.search).trim());
+  const json = await marketApiGet(chain, `/sales?${q.toString()}`);
+  const sales = (json.data || []).map(marketSaleView);
+  return {
+    network: chain.id, market: marketOf(chain).contract,
+    count: sales.length, page: Number(q.get("page")), sort: q.get("sort"), order: q.get("order"),
+    filters: {
+      collection: opts.collection || null, schema: opts.schema || null,
+      template_id: opts.template_id != null && opts.template_id !== "" ? String(opts.template_id) : null,
+      seller: opts.seller || null, symbol: symbol || null,
+      min_price: opts.min_price != null && opts.min_price !== "" ? String(opts.min_price) : null,
+      max_price: opts.max_price != null && opts.max_price !== "" ? String(opts.max_price) : null,
+    },
+    sales,
+  };
+}
+
+// market-listing — one sale with full media + price.
+async function marketListing(chain, saleId) {
+  if (saleId == null || saleId === "") throw new Error("sale_id required");
+  const json = await marketApiGet(chain, `/sales/${encodeURIComponent(String(saleId))}`);
+  if (!json.data) throw new Error(`sale ${saleId} not found on ${chain.name}`);
+  return { network: chain.id, sale: marketSaleView(json.data) };
+}
+
+// market-price — floor / average / median from active listings of a collection
+// or template. Samples the cheapest 100 active listings (sorted by price asc),
+// grouped per settlement token (floor is only meaningful within one token).
+async function marketPrice(chain, opts = {}) {
+  if (!opts.collection && (opts.template_id == null || opts.template_id === ""))
+    throw new Error("market-price needs a collection or template_id");
+  const q = new URLSearchParams();
+  q.set("state", "1"); q.set("sort", "price"); q.set("order", "asc"); q.set("limit", "100");
+  if (opts.collection) q.set("collection_name", String(opts.collection).trim());
+  if (opts.template_id != null && opts.template_id !== "") q.set("template_id", String(opts.template_id));
+  if (opts.schema) q.set("schema_name", String(opts.schema).trim());
+  if (opts.symbol) q.set("symbol", String(opts.symbol).trim().toUpperCase());
+  const json = await marketApiGet(chain, `/sales?${q.toString()}`);
+  const rows = (json.data || []).filter((s) => s.price && s.price.amount != null);
+  const scope = {
+    collection: opts.collection || null,
+    template_id: opts.template_id != null && opts.template_id !== "" ? String(opts.template_id) : null,
+    schema: opts.schema || null,
+  };
+  if (!rows.length) return { network: chain.id, scope, symbol: opts.symbol || null, listings: 0, floor: null, average: null, median: null };
+  const bySym = {};
+  for (const s of rows) {
+    const k = s.price.token_symbol;
+    (bySym[k] = bySym[k] || []).push({ amt: Number(s.price.amount) / Math.pow(10, Number(s.price.token_precision || 0)), prec: Number(s.price.token_precision || 0) });
+  }
+  const symKey = opts.symbol && bySym[String(opts.symbol).toUpperCase()]
+    ? String(opts.symbol).toUpperCase()
+    : Object.keys(bySym).sort((x, y) => bySym[y].length - bySym[x].length)[0];
+  const group = bySym[symKey].sort((x, y) => x.amt - y.amt);
+  const ps = group.map((g) => g.amt);
+  const prec = group[0].prec;
+  const sum = ps.reduce((x, y) => x + y, 0);
+  const median = ps.length % 2 ? ps[(ps.length - 1) / 2] : (ps[ps.length / 2 - 1] + ps[ps.length / 2]) / 2;
+  const fmt = (n) => `${Number(n).toFixed(prec)} ${symKey}`;
+  return {
+    network: chain.id, scope, symbol: symKey,
+    listings: ps.length, sampled: rows.length,
+    floor: { amount: ps[0], display: fmt(ps[0]) },
+    average: { amount: Number((sum / ps.length).toFixed(prec)), display: fmt(sum / ps.length) },
+    median: { amount: Number(median.toFixed(prec)), display: fmt(median) },
+    note: ps.length >= 100 ? "sampled from the cheapest 100 active listings" : "over all active listings",
+  };
+}
+
+// Settlement symbol for a listing. Default = chain core (WAX = 8dp). Accepts
+// "WAX", "8,WAX", or a precision-qualified non-core token. The listing_price
+// asset must carry this precision or announcesale rejects it.
+function parseListingSymbol(chain, symbol) {
+  if (!symbol) return { precision: chain.corePrecision, code: chain.coreSymbol };
+  const s = String(symbol).trim();
+  const m = s.match(/^(\d{1,2})\s*,\s*([A-Z]{1,7})$/);
+  if (m) return { precision: parseInt(m[1], 10), code: m[2] };
+  const up = s.toUpperCase();
+  if (/^[A-Z]{1,7}$/.test(up)) {
+    if (up === chain.coreSymbol) return { precision: chain.corePrecision, code: up };
+    throw new Error(`non-core token "${up}" needs an explicit precision — pass symbol:"<precision>,${up}" (e.g. "4,TLM")`);
+  }
+  throw new Error(`bad symbol "${symbol}" — use "WAX" or "8,WAX"`);
+}
+
+function formatListingPrice(price, symObj) {
+  if (price == null || price === "") throw new Error('price is required (e.g. price:"1.0")');
+  const head = String(price).trim().split(/\s+/)[0];
+  const n = Number(head);
+  if (!Number.isFinite(n) || n < 0) throw new Error(`bad price "${price}" — pass a non-negative number`);
+  return `${n.toFixed(symObj.precision)} ${symObj.code}`;
+}
+
+// Convert an AtomicAssets HTTP API asset object into the same decoded shape produced
+// by the on-chain get_table_rows path. The API returns data already merged from
+// template + asset immutable/mutable, so we split it back into immutable/mutable for
+// backwards compatibility and re-run extractMedia() for consistent gateway handling.
+function apiAssetView(a, chain) {
+  const asset_id = String(a.asset_id);
+  const collection_name = (a.collection && a.collection.collection_name) || a.collection_name || null;
+  const schema_name = (a.schema && a.schema.schema_name) || a.schema_name || null;
+  const template_id = (a.template && a.template.template_id != null) ? a.template.template_id : (a.template_id != null ? a.template_id : null);
+  const template_mint = a.template_mint != null ? String(a.template_mint) : null;
+  const owner = a.owner || null;
+
+  // The API merges template immutable_data + asset immutable_data + mutable_data into `data`.
+  // For backwards compatibility, expose the merged blob as `immutable` and keep mutable
+  // separately if the API provides it; most callers just need `data`/`name`/`media`.
+  const merged = a.data || {};
+  const immutable = { ...merged };
+  const mutable = a.mutable_data || {};
+  // Remove mutable-only keys from immutable copy if schema distinguishes them.
+  for (const k of Object.keys(mutable)) delete immutable[k];
+
+  const templateImmutable = (a.template && a.template.immutable_data) ? a.template.immutable_data : {};
+  const name = merged.name || `${collection_name || "asset"} #${asset_id}`;
+  const media = extractMedia(merged, templateImmutable);
+
+  return {
+    asset_id,
+    template_mint,
+    collection: collection_name,
+    schema: schema_name,
+    template_id,
+    owner,
+    immutable,
+    mutable,
+    name,
+    image: media && (media.type === "image" || media.type === "video" || media.type === "glb") ? media.url : null,
+    image_url: media && (media.type === "image" || media.type === "video" || media.type === "glb") ? media.url : null,
+    media,
+    video: merged.video || templateImmutable.video || null,
+    rarity: merged.rarity || templateImmutable.rarity || null,
+    max_supply: (a.template && a.template.max_supply != null) ? String(a.template.max_supply) : null,
+    issued_supply: (a.template && a.template.issued_supply != null) ? String(a.template.issued_supply) : null,
+    collection_authorized: !!(a.collection && Array.isArray(a.collection.authorized_accounts) && a.collection.authorized_accounts.includes(assetsContract(chain))),
+  };
+}
+
+// ── AtomicAssets NFT inventory (Phase A + API layer) ─────────────────
+// Prefer the AtomicAssets HTTP indexer: it gives decoded data + merged template
+// metadata in one call and tolerates chain RPC overload. Falls back to reading
+// the atomicassets contract directly via get_table_rows if all API hosts fail.
+// Filters are applied client-side (the API supports collection/schema/template_id
+// query params, but template_id is passed as a string and we normalise here).
 async function getAtomicAssets(chain, account, options = {}) {
   const limit = Math.min(Math.max(parseInt(options.limit, 10) || 100, 1), 1000);
   const collectionFilter = options.collection ? String(options.collection).trim() : null;
   const schemaFilter = options.schema ? String(options.schema).trim() : null;
   const templateFilter = options.template_id != null ? String(options.template_id) : null;
 
+  // Try AtomicAssets API first.
+  if (chainFeatures(chain).atomicAssets) {
+    const qparts = [];
+    qparts.push(`owner=${encodeURIComponent(account)}`);
+    qparts.push(`limit=${Math.min(limit, 100)}`);
+    qparts.push("order=desc");
+    qparts.push("sort=asset_id");
+    if (collectionFilter) qparts.push(`collection_name=${encodeURIComponent(collectionFilter)}`);
+    if (schemaFilter) qparts.push(`schema_name=${encodeURIComponent(schemaFilter)}`);
+    if (templateFilter) qparts.push(`template_id=${encodeURIComponent(templateFilter)}`);
+    try {
+      const json = await atomicApiGet(chain, `${aaApiPath(chain)}/assets?${qparts.join("&")}`);
+      const rows = Array.isArray(json.data) ? json.data : [];
+      const assets = rows.slice(0, limit).map((row) => apiAssetView(row, chain));
+      return { account, network: chain.id, count: assets.length, assets, source: "atomic-api" };
+    } catch (e) {
+      // Fall through to on-chain read.
+    }
+  }
+
+  // On-chain fallback via get_table_rows.
   const assets = [];
   let next_key = null;
   do {
-    const body = { code: "atomicassets", scope: account, table: "assets", json: true, limit: Math.min(limit - assets.length, 100) };
+    const body = { code: assetsContract(chain), scope: account, table: "assets", json: true, limit: Math.min(limit - assets.length, 100) };
     if (next_key != null) body.lower_bound = next_key;
     const res = await rpc(chain, "get_table_rows", body);
     const rows = Array.isArray(res.rows) ? res.rows : [];
@@ -724,7 +1276,7 @@ async function getAtomicAssets(chain, account, options = {}) {
   // Batch fetch schemas: one call per unique collection+schema
   for (const [key, { collection, schema_name }] of schemaNeeded) {
     try {
-      const res = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: collection, table: "schemas", lower_bound: schema_name, upper_bound: schema_name, json: true, limit: 1 });
+      const res = await rpc(chain, "get_table_rows", { code: assetsContract(chain), scope: collection, table: "schemas", lower_bound: schema_name, upper_bound: schema_name, json: true, limit: 1 });
       const row = (res.rows || [])[0];
       if (row && row.schema_name === schema_name) aaCacheSet(key, row.format || []);
     } catch { /* best effort — leave schema empty */ }
@@ -733,7 +1285,7 @@ async function getAtomicAssets(chain, account, options = {}) {
   // Batch fetch templates: one call per unique template
   for (const [key, { collection, template_id }] of templateNeeded) {
     try {
-      const res = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: collection, table: "templates", lower_bound: template_id, upper_bound: template_id, json: true, limit: 1 });
+      const res = await rpc(chain, "get_table_rows", { code: assetsContract(chain), scope: collection, table: "templates", lower_bound: template_id, upper_bound: template_id, json: true, limit: 1 });
       const row = (res.rows || [])[0];
       if (row && row.template_id === template_id) aaCacheSet(key, row);
     } catch { /* best effort */ }
@@ -748,7 +1300,7 @@ async function getAtomicAssets(chain, account, options = {}) {
     let col = aaCacheGet(key);
     if (!col) {
       try {
-        const res = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: "atomicassets", table: "collections", lower_bound: colName, upper_bound: colName, json: true, limit: 1 });
+        const res = await rpc(chain, "get_table_rows", { code: assetsContract(chain), scope: assetsContract(chain), table: "collections", lower_bound: colName, upper_bound: colName, json: true, limit: 1 });
         col = (res.rows || [])[0];
         if (col) aaCacheSet(key, col);
       } catch { /* best effort */ }
@@ -793,28 +1345,70 @@ async function getAtomicAssets(chain, account, options = {}) {
       rarity: immutable.rarity || templateImmutable.rarity || null,
       max_supply: template ? (template.max_supply != null ? String(template.max_supply) : null) : null,
       issued_supply: template ? (template.issued_supply != null ? String(template.issued_supply) : null) : null,
-      collection_authorized: col ? Array.isArray(col.authorized_accounts) && col.authorized_accounts.includes("atomicassets") : false,
+      collection_authorized: col ? Array.isArray(col.authorized_accounts) && col.authorized_accounts.includes(assetsContract(chain)) : false,
     };
   });
 
-  return { account, network: chain.id, count: decoded.length, assets: decoded };
+  return { account, network: chain.id, count: decoded.length, assets: decoded, source: "rpc" };
 }
 
 // Fetch a single AtomicAssets asset by asset_id, decoded.
-async function getAtomicAsset(chain, assetId) {
+async function getAtomicAsset(chain, assetId, ownerHint, storeFile) {
   if (assetId == null) throw new Error("asset_id required");
-  const res = await rpc(chain, "get_table_rows", {
-    code: "atomicassets", scope: "atomicassets", table: "assets",
-    lower_bound: assetId, upper_bound: assetId, json: true, limit: 1,
-  });
-  const row = (res.rows || [])[0];
-  if (!row || String(row.asset_id) !== String(assetId)) throw new Error(`asset ${assetId} not found`);
+
+  const assetIdStr = String(assetId);
+
+  // Try AtomicAssets API first (does not need owner hint).
+  if (chainFeatures(chain).atomicAssets) {
+    try {
+      const json = await atomicApiGet(chain, `${aaApiPath(chain)}/assets/${assetIdStr}`);
+      if (json && json.success === true && json.data) return apiAssetView(json.data, chain);
+    } catch { /* fall through to on-chain search */ }
+  }
+
+  let row = null;
+
+  async function tryOwner(owner) {
+    if (!owner) return null;
+    try {
+      const res = await rpc(chain, "get_table_rows", {
+        code: assetsContract(chain), scope: owner, table: "assets",
+        lower_bound: assetId, upper_bound: assetId, json: true, limit: 1,
+      });
+      const found = (res.rows || [])[0];
+      return found && String(found.asset_id) === assetIdStr ? found : null;
+    } catch { return null; }
+  }
+
+  // 1. explicit owner hint (from CLI --owner or positional arg)
+  row = await tryOwner(ownerHint);
+
+  // 2. fall back to stored accounts on this network
+  if (!row && storeFile) {
+    try {
+      const store = loadStore(storeFile);
+      const bucket = store.byNet?.[chain.id];
+      const candidates = new Set();
+      if (bucket?.selected) candidates.add(bucket.selected);
+      if (Array.isArray(bucket?.accounts)) {
+        for (const a of bucket.accounts) {
+          if (a.account) candidates.add(a.account);
+        }
+      }
+      for (const owner of candidates) {
+        row = await tryOwner(owner);
+        if (row) break;
+      }
+    } catch { /* ignore store read errors */ }
+  }
+
+  if (!row) throw new Error(`asset ${assetId} not found`);
 
   const sKey = `${chain.id}:${row.collection_name}:${row.schema_name}`;
   let format = aaCacheGet(sKey);
   if (!format) {
     try {
-      const sres = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: row.collection_name, table: "schemas", lower_bound: row.schema_name, upper_bound: row.schema_name, json: true, limit: 1 });
+      const sres = await rpc(chain, "get_table_rows", { code: assetsContract(chain), scope: row.collection_name, table: "schemas", lower_bound: row.schema_name, upper_bound: row.schema_name, json: true, limit: 1 });
       const srow = (sres.rows || [])[0];
       format = (srow && srow.schema_name === row.schema_name) ? (srow.format || []) : [];
       aaCacheSet(sKey, format);
@@ -827,7 +1421,7 @@ async function getAtomicAsset(chain, assetId) {
     template = aaCacheGet(tKey);
     if (!template) {
       try {
-        const tres = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: row.collection_name, table: "templates", lower_bound: row.template_id, upper_bound: row.template_id, json: true, limit: 1 });
+        const tres = await rpc(chain, "get_table_rows", { code: assetsContract(chain), scope: row.collection_name, table: "templates", lower_bound: row.template_id, upper_bound: row.template_id, json: true, limit: 1 });
         const trow = (tres.rows || [])[0];
         if (trow && trow.template_id === row.template_id) { template = trow; aaCacheSet(tKey, template); }
       } catch {}
@@ -838,7 +1432,7 @@ async function getAtomicAsset(chain, assetId) {
   let collection = aaCacheGet(cKey);
   if (!collection) {
     try {
-      const cres = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: "atomicassets", table: "collections", lower_bound: row.collection_name, upper_bound: row.collection_name, json: true, limit: 1 });
+      const cres = await rpc(chain, "get_table_rows", { code: assetsContract(chain), scope: assetsContract(chain), table: "collections", lower_bound: row.collection_name, upper_bound: row.collection_name, json: true, limit: 1 });
       collection = (cres.rows || [])[0];
       if (collection) aaCacheSet(cKey, collection);
     } catch {}
@@ -872,19 +1466,28 @@ async function getAtomicAsset(chain, assetId) {
     rarity: immutable.rarity || templateImmutable.rarity || null,
     max_supply: template ? (template.max_supply != null ? String(template.max_supply) : null) : null,
     issued_supply: template ? (template.issued_supply != null ? String(template.issued_supply) : null) : null,
-    collection_authorized: collection ? Array.isArray(collection.authorized_accounts) && collection.authorized_accounts.includes("atomicassets") : false,
+    collection_authorized: collection ? Array.isArray(collection.authorized_accounts) && collection.authorized_accounts.includes(assetsContract(chain)) : false,
   };
 }
 
 // Fetch AtomicAssets action history for one asset_id via Hyperion v2.
 // Returns mint/transfer/setassetdata/burn events with actor + txId.
-async function getAtomicAssetHistory(chain, assetId, ownerHint) {
+async function getAtomicAssetHistory(chain, assetId, ownerHint, _retried) {
   if (assetId == null) throw new Error("asset_id required");
   const owner = ownerHint || null;
-  const url = `${chain.history}/v2/history/get_actions?account=atomicassets&filter=atomicassets:transfer,atomicassets:mintasset,atomicassets:setassetdata,atomicassets:burnasset&limit=200&sort=desc`;
+  let historyUrl;
+  try {
+    historyUrl = await _pickHealthyHistory(chain);
+  } catch (e) {
+    throw new Error(`history endpoint unreachable (${chain.id}): ${e.message}`);
+  }
+  const url = `${historyUrl}/v2/history/get_actions?account=${assetsContract(chain)}&filter=${assetsContract(chain)}:transfer,${assetsContract(chain)}:mintasset,${assetsContract(chain)}:setassetdata,${assetsContract(chain)}:burnasset&limit=200&sort=desc`;
   let res;
   try { res = await fetch(url, { headers: { connection: "close" } }); }
-  catch (e) { throw new Error(`history endpoint unreachable: ${e?.cause?.code || e.message}`); }
+  catch (e) {
+    if (!_retried) { _invalidateHistory(chain.id); return getAtomicAssetHistory(chain, assetId, ownerHint, true); }
+    throw new Error(`history endpoint unreachable: ${e?.cause?.code || e.message}`);
+  }
   if (!res.ok) throw new Error(`history HTTP ${res.status}`);
   const json = await res.json();
   const acts = json.simple_actions || json.actions || [];
@@ -955,32 +1558,69 @@ function decodeCollectionRow(chain, row) {
   };
 }
 
-// Fetch all AtomicAssets collections (code=atomicassets, scope=atomicassets, table=collections).
+// Fetch all AtomicAssets collections. Prefer AtomicAssets API; fall back to chain.
 async function getAtomicCollections(chain, options = {}) {
   const limit = Math.min(Math.max(parseInt(options.limit, 10) || 1000, 1), 1000);
+
+  if (chainFeatures(chain).atomicAssets) {
+    try {
+      const q = new URLSearchParams();
+      q.set("limit", String(Math.min(limit, 100)));
+      q.set("order", "desc");
+      q.set("sort", "created");
+      const json = await atomicApiGet(chain, `${aaApiPath(chain)}/collections?${q.toString()}`);
+      const rows = Array.isArray(json.data) ? json.data : [];
+      return {
+        network: chain.id, count: rows.length,
+        collections: rows.map((r) => ({
+          collection_name: r.collection_name,
+          author: r.author,
+          allow_notify: r.allow_notify,
+          authorized_accounts: r.authorized_accounts || [],
+          notify_accounts: r.notify_accounts || [],
+          market_fee: r.market_fee,
+          serialized_data: r.data || {},
+          raw_serialized_data: null,
+        })),
+        source: "atomic-api",
+      };
+    } catch { /* fall through to chain */ }
+  }
+
   const rows = [];
   let next_key = null;
   do {
-    const body = { code: "atomicassets", scope: "atomicassets", table: "collections", json: true, limit: Math.min(limit - rows.length, 100) };
+    const body = { code: assetsContract(chain), scope: assetsContract(chain), table: "collections", json: true, limit: Math.min(limit - rows.length, 100) };
     if (next_key != null) body.lower_bound = next_key;
     const res = await rpc(chain, "get_table_rows", body);
     for (const r of res.rows || []) rows.push(r);
     next_key = res.more && res.next_key != null ? res.next_key : null;
   } while (next_key != null && rows.length < limit);
 
-  return { network: chain.id, count: rows.length, collections: rows.map((r) => decodeCollectionRow(chain, r)) };
+  return { network: chain.id, count: rows.length, collections: rows.map((r) => decodeCollectionRow(chain, r)), source: "rpc" };
 }
 
-// Fetch schemas for one collection (scope = collection_name, table = schemas).
+// Fetch schemas for one collection. Prefer AtomicAssets API; fall back to chain.
 async function getAtomicSchemas(chain, collection, options = {}) {
   assertAccountName(collection, "collection");
   const limit = Math.min(Math.max(parseInt(options.limit, 10) || 1000, 1), 1000);
+
+  if (chainFeatures(chain).atomicAssets) {
+    try {
+      const q = new URLSearchParams();
+      q.set("collection_name", collection);
+      q.set("limit", String(Math.min(limit, 100)));
+      const json = await atomicApiGet(chain, `${aaApiPath(chain)}/schemas?${q.toString()}`);
+      const rows = Array.isArray(json.data) ? json.data : [];
+      return { network: chain.id, collection, count: rows.length, schemas: rows.map((r) => ({ schema_name: r.schema_name, format: r.format || [] })), source: "atomic-api" };
+    } catch { /* fall through */ }
+  }
 
   // Keep collection row warm in cache for detail views.
   const cKey = `${chain.id}:collection:${collection}`;
   if (!aaCacheGet(cKey)) {
     try {
-      const cres = await rpc(chain, "get_table_rows", { code: "atomicassets", scope: "atomicassets", table: "collections", lower_bound: collection, upper_bound: collection, json: true, limit: 1 });
+      const cres = await rpc(chain, "get_table_rows", { code: assetsContract(chain), scope: assetsContract(chain), table: "collections", lower_bound: collection, upper_bound: collection, json: true, limit: 1 });
       const col = (cres.rows || [])[0];
       if (col) aaCacheSet(cKey, col);
     } catch { /* best effort */ }
@@ -989,20 +1629,44 @@ async function getAtomicSchemas(chain, collection, options = {}) {
   const rows = [];
   let next_key = null;
   do {
-    const body = { code: "atomicassets", scope: collection, table: "schemas", json: true, limit: Math.min(limit - rows.length, 100) };
+    const body = { code: assetsContract(chain), scope: collection, table: "schemas", json: true, limit: Math.min(limit - rows.length, 100) };
     if (next_key != null) body.lower_bound = next_key;
     const res = await rpc(chain, "get_table_rows", body);
     for (const r of res.rows || []) rows.push(r);
     next_key = res.more && res.next_key != null ? res.next_key : null;
   } while (next_key != null && rows.length < limit);
 
-  return { network: chain.id, collection, count: rows.length, schemas: rows.map((r) => ({ schema_name: r.schema_name, format: r.format || [] })) };
+  return { network: chain.id, collection, count: rows.length, schemas: rows.map((r) => ({ schema_name: r.schema_name, format: r.format || [] })), source: "rpc" };
 }
 
 // Fetch templates for one collection, decoding each template's immutable data.
 async function getAtomicTemplates(chain, collection, options = {}) {
   assertAccountName(collection, "collection");
   const limit = Math.min(Math.max(parseInt(options.limit, 10) || 1000, 1), 1000);
+
+  if (chainFeatures(chain).atomicAssets) {
+    try {
+      const q = new URLSearchParams();
+      q.set("collection_name", collection);
+      q.set("limit", String(Math.min(limit, 100)));
+      const json = await atomicApiGet(chain, `${aaApiPath(chain)}/templates?${q.toString()}`);
+      const rows = Array.isArray(json.data) ? json.data : [];
+      const templates = rows.map((r) => {
+        const immutable = (r.immutable_data) || {};
+        return {
+          template_id: r.template_id,
+          schema_name: (r.schema && r.schema.schema_name) || r.schema_name || null,
+          transferable: r.transferable,
+          burnable: r.burnable,
+          max_supply: r.max_supply != null ? String(r.max_supply) : null,
+          issued_supply: r.issued_supply != null ? String(r.issued_supply) : null,
+          immutable,
+          media: extractMedia(immutable, {}),
+        };
+      });
+      return { network: chain.id, collection, count: templates.length, templates, source: "atomic-api" };
+    } catch { /* fall through */ }
+  }
 
   // Resolve schemas first so we can decode template immutable data.
   const schemaRes = await getAtomicSchemas(chain, collection, { limit: 1000 });
@@ -1011,7 +1675,7 @@ async function getAtomicTemplates(chain, collection, options = {}) {
   const rows = [];
   let next_key = null;
   do {
-    const body = { code: "atomicassets", scope: collection, table: "templates", json: true, limit: Math.min(limit - rows.length, 100) };
+    const body = { code: assetsContract(chain), scope: collection, table: "templates", json: true, limit: Math.min(limit - rows.length, 100) };
     if (next_key != null) body.lower_bound = next_key;
     const res = await rpc(chain, "get_table_rows", body);
     for (const r of res.rows || []) rows.push(r);
@@ -1033,7 +1697,7 @@ async function getAtomicTemplates(chain, collection, options = {}) {
     };
   });
 
-  return { network: chain.id, collection, count: templates.length, templates };
+  return { network: chain.id, collection, count: templates.length, templates, source: "rpc" };
 }
 
 // ── Keystore (encrypted at rest; accounts SCOPED PER NETWORK) ────────
@@ -1772,7 +2436,7 @@ module.exports = (ctx) => {
     const store = loadStore(FILE);
     const { rec, actor: fromName, permission } = resolveSigner(store, chain, p.from);
     const action = {
-      account: "atomicassets", name: "transfer",
+      account: assetsContract(chain), name: "transfer",
       authorization: [{ actor: fromName, permission }],
       data: { from: fromName, to: toName, asset_ids: assetIds, memo: p.memo != null ? String(p.memo) : "" },
     };
@@ -1781,6 +2445,123 @@ module.exports = (ctx) => {
       networkId: chain.id, actions: [action],
       view: { from: fromName, to: toName, asset_ids: assetIds, memo: p.memo || "" },
       result: { kind: "transfernft", from: fromName, to: toName, asset_ids: assetIds, memo: p.memo || "" },
+    });
+  }
+
+  // ── Light Marketplace writes (AtomicMarket) — sign-intent gated ──────
+  // Both build a sign-intent (NO broadcast); the existing confirm/cancel gate
+  // handles signing. Action shapes are grounded in the live ABI:
+  //   announcesale(seller, asset_ids, listing_price, settlement_symbol, maker_marketplace)
+  //   atomicassets::createoffer(sender, recipient, sender_asset_ids, recipient_asset_ids, memo)
+  //   purchasesale(buyer, sale_id, intended_delphi_median, taker_marketplace)
+  // AtomicMarket settles purchases from a deposited balance, so a buy is a
+  // token transfer (memo "deposit") + purchasesale in one intent.
+
+  // market-list — list NFT(s) for sale. Two actions, ONE intent:
+  //   1) atomicmarket::announcesale  — declare the sale + price
+  //   2) atomicassets::createoffer   — escrow the asset(s) to atomicmarket
+  // announcesale must precede createoffer so the sale exists when the offer's
+  // lognewoffer notification reaches the market contract.
+  async function marketList(params) {
+    const p = typeof params === "object" ? params : {};
+    const chain = resolveNet(p.network);
+    const m = marketOf(chain); // throws on non-WAX
+    let assetIds = p.asset_ids || p.assetIds || p.assets || p.asset_id;
+    if (!Array.isArray(assetIds)) assetIds = [assetIds];
+    assetIds = assetIds.map(String).filter(Boolean);
+    if (!assetIds.length) throw new Error("at least one asset_id is required");
+    const symObj = parseListingSymbol(chain, p.symbol);
+    const priceStr = formatListingPrice(p.price != null ? p.price : p.quantity, symObj);
+    const settlement = `${symObj.precision},${symObj.code}`;
+    const maker = p.maker_marketplace ? assertAccountName(p.maker_marketplace, "maker_marketplace") : "";
+
+    const store = loadStore(FILE);
+    const { rec, actor: seller, permission } = resolveSigner(store, chain, p.from || p.seller);
+    const announce = {
+      account: m.contract, name: "announcesale",
+      authorization: [{ actor: seller, permission }],
+      data: { seller, asset_ids: assetIds, listing_price: priceStr, settlement_symbol: settlement, maker_marketplace: maker },
+    };
+    const offer = {
+      account: assetsContract(chain), name: "createoffer",
+      authorization: [{ actor: seller, permission }],
+      data: { sender: seller, recipient: m.contract, sender_asset_ids: assetIds, recipient_asset_ids: [], memo: "sale" },
+    };
+    return registerIntent({
+      kind: "market-list", actor: seller, permission, publicKey: rec.publicKey,
+      networkId: chain.id, actions: [announce, offer],
+      view: { seller, asset_ids: assetIds, listing_price: priceStr, settlement_symbol: settlement, marketplace: m.contract, maker_marketplace: maker || null },
+      result: { kind: "market-list", seller, asset_ids: assetIds, listing_price: priceStr, settlement_symbol: settlement },
+    });
+  }
+
+  // market-buy — buy a listed sale. Two actions, ONE intent:
+  //   1) <token>::transfer buyer→atomicmarket memo "deposit"  (fund the balance)
+  //   2) atomicmarket::purchasesale                            (spend it on the sale)
+  // Price + token are read live from the sale so the deposit matches exactly.
+  // intended_delphi_median = 0 for a direct token-settled sale (no Delphi/USD).
+  async function marketBuy(params) {
+    const p = typeof params === "object" ? params : {};
+    const chain = resolveNet(p.network);
+    const m = marketOf(chain);
+    const saleId = p.sale_id || p.saleId || p.id;
+    if (saleId == null || saleId === "") throw new Error("sale_id required");
+    const { sale } = await marketListing(chain, saleId);
+    if (sale.state !== 1) throw new Error(`sale ${saleId} is not listed (state=${sale.state}) — cannot buy`);
+    if (!sale.price) throw new Error(`sale ${saleId} has no readable price`);
+
+    const store = loadStore(FILE);
+    const { rec, actor: buyer, permission } = resolveSigner(store, chain, p.from || p.buyer);
+    if (buyer === sale.seller) throw new Error("you are the seller of this sale — cannot buy your own listing");
+    const taker = p.taker_marketplace ? assertAccountName(p.taker_marketplace, "taker_marketplace") : "";
+    const tokenContract = sale.price.token_contract || "eosio.token";
+    const quantity = `${Number(sale.price.amount).toFixed(sale.price.token_precision)} ${sale.price.token_symbol}`;
+    const deposit = {
+      account: tokenContract, name: "transfer",
+      authorization: [{ actor: buyer, permission }],
+      data: { from: buyer, to: m.contract, quantity, memo: "deposit" },
+    };
+    const purchase = {
+      account: m.contract, name: "purchasesale",
+      authorization: [{ actor: buyer, permission }],
+      data: { buyer, sale_id: String(saleId), intended_delphi_median: 0, taker_marketplace: taker },
+    };
+    return registerIntent({
+      kind: "market-buy", actor: buyer, permission, publicKey: rec.publicKey,
+      networkId: chain.id, actions: [deposit, purchase],
+      view: { buyer, sale_id: String(saleId), price: quantity, seller: sale.seller, asset_ids: sale.asset_ids, assets: sale.assets, marketplace: m.contract },
+      result: { kind: "market-buy", buyer, sale_id: String(saleId), price: quantity, seller: sale.seller, asset_ids: sale.asset_ids },
+    });
+  }
+
+  // market-cancel — cancel a sale you listed. ONE action, ONE intent:
+  //   atomicmarket::cancelsale(sale_id)  — pulls the listing + releases the
+  // escrowed asset(s) back to the seller. Only the sale's seller can cancel, so
+  // the signer is resolved + asserted against the live sale.seller (same guard
+  // shape as market-buy's seller check). Closes the list→buy→cancel lifecycle.
+  async function marketCancel(params) {
+    const p = typeof params === "object" ? params : {};
+    const chain = resolveNet(p.network);
+    const m = marketOf(chain);
+    const saleId = p.sale_id || p.saleId || p.id;
+    if (saleId == null || saleId === "") throw new Error("sale_id required");
+    const { sale } = await marketListing(chain, saleId);
+    if (sale.state !== 1) throw new Error(`sale ${saleId} is not listed (state=${sale.state}) — nothing to cancel`);
+
+    const store = loadStore(FILE);
+    const { rec, actor: seller, permission } = resolveSigner(store, chain, p.from || p.seller);
+    if (sale.seller && seller !== sale.seller)
+      throw new Error(`only the seller (${sale.seller}) can cancel sale ${saleId} — you are ${seller}`);
+    const cancel = {
+      account: m.contract, name: "cancelsale",
+      authorization: [{ actor: seller, permission }],
+      data: { sale_id: String(saleId) },
+    };
+    return registerIntent({
+      kind: "market-cancel", actor: seller, permission, publicKey: rec.publicKey,
+      networkId: chain.id, actions: [cancel],
+      view: { seller, sale_id: String(saleId), asset_ids: sale.asset_ids, assets: sale.assets, marketplace: m.contract },
+      result: { kind: "market-cancel", seller, sale_id: String(saleId), asset_ids: sale.asset_ids },
     });
   }
 
@@ -1915,7 +2696,19 @@ module.exports = (ctx) => {
     );
     const actions = it.actions || [];
     const tx = actions.length === 1 ? { action: actions[0] } : { actions };
-    const result = await session.transact(tx, { broadcast: true });
+    // dryRun: resolve + serialize against the live on-chain ABIs (catches a bad
+    // action shape) but do NOT broadcast and do NOT consume the intent — used by
+    // tests/simulation. A normal confirm broadcasts and is single-use.
+    const dry = p.dryRun === true || p.dry === true;
+    const result = await session.transact(tx, { broadcast: !dry });
+    if (dry) {
+      armAutoLock();
+      return {
+        dryRun: true, broadcast: false, serialized: true,
+        actions: actions.map((x) => ({ account: x.account, name: x.name, data: x.data })),
+        ...it.result, network: chain.name, networkId: chain.id,
+      };
+    }
     intents.delete(id); // single use
     armAutoLock();       // signing counts as activity
     const txId = String(result.response?.transaction_id || result.resolved?.transaction?.id || "");
@@ -2003,13 +2796,37 @@ module.exports = (ctx) => {
     const s = (args || "").trim();
     if (!s) return {};
     if (s.startsWith("{")) { try { return JSON.parse(s); } catch {} }
-    return { _raw: s, _parts: s.split(/\s+/) };
+    // Parse a CLI-ish string: `--flag value` / `--flag=value` / bare `--flag`
+    // (boolean) become keys on the object, matching what every plugin.json
+    // command advertises; bare tokens stay positional in _parts (back-compat).
+    const tokens = s.split(/\s+/);
+    const out = { _raw: s, _parts: [] };
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      if (t.startsWith("--") && t.length > 2) {
+        const eq = t.indexOf("=");
+        if (eq !== -1) { out[t.slice(2, eq)] = t.slice(eq + 1); continue; }
+        const key = t.slice(2);
+        const next = tokens[i + 1];
+        if (next != null && !next.startsWith("--")) { out[key] = next; i++; }
+        else { out[key] = true; }
+      } else {
+        out._parts.push(t);
+      }
+    }
+    return out;
   }
 
   async function onCommand(cmd, args, reply) {
     try {
       const a = parseArgs(args);
       const parts = a._parts || [];
+      const gateAtomicAssets = (net) => {
+        if (!chainFeatures(net).atomicAssets) return reply({ ok: false, msg: `AtomicAssets/NFT inventory is not available on ${net.name}` });
+      };
+      const gateAtomicMarket = (net) => {
+        if (!chainFeatures(net).atomicMarket) return reply({ ok: false, msg: `Marketplace is not available on ${net.name}` });
+      };
       switch (cmd) {
         case "brand":      return reply({ ok: true, brand: BRAND });
         case "networks":   return reply({ ok: true, networks: Object.values(CHAINS).map(publicChain), current: currentNet().id, default: DEFAULT_NET });
@@ -2111,6 +2928,8 @@ module.exports = (ctx) => {
         // ── NFT Inventory (Phase A + B + C) ───────────────────────────
         case "nftassets": {
           const net = resolveNet(a.network);
+          const gated = gateAtomicAssets(net);
+          if (gated) return gated;
           const account = a.account || parts[0];
           if (!account) return reply({ ok: false, msg: "account name required" });
           assertAccountName(account, "account");
@@ -2123,14 +2942,19 @@ module.exports = (ctx) => {
 
         case "nftasset": {
           const net = resolveNet(a.network);
+          const gated = gateAtomicAssets(net);
+          if (gated) return gated;
           const assetId = a.asset_id || a.assetId || parts[0];
+          const owner = a.owner || parts[1] || null;
           if (assetId == null) return reply({ ok: false, msg: "asset_id required" });
-          const asset = await getAtomicAsset(net, assetId);
+          const asset = await getAtomicAsset(net, assetId, owner, FILE);
           return reply({ ok: true, network: net.id, asset });
         }
 
         case "nfthistory": {
           const net = resolveNet(a.network);
+          const gated = gateAtomicAssets(net);
+          if (gated) return gated;
           const assetId = a.asset_id || a.assetId || parts[0];
           const owner = a.owner || parts[1] || null;
           if (assetId == null) return reply({ ok: false, msg: "asset_id required" });
@@ -2140,12 +2964,16 @@ module.exports = (ctx) => {
 
         case "nftcollections": {
           const net = resolveNet(a.network);
+          const gated = gateAtomicAssets(net);
+          if (gated) return gated;
           const result = await getAtomicCollections(net, { limit: a.limit });
           return reply({ ok: true, ...result });
         }
 
         case "nftschemas": {
           const net = resolveNet(a.network);
+          const gated = gateAtomicAssets(net);
+          if (gated) return gated;
           const collection = a.collection || parts[0];
           if (!collection) return reply({ ok: false, msg: "collection name required" });
           const result = await getAtomicSchemas(net, collection, { limit: a.limit });
@@ -2154,6 +2982,8 @@ module.exports = (ctx) => {
 
         case "nfttemplates": {
           const net = resolveNet(a.network);
+          const gated = gateAtomicAssets(net);
+          if (gated) return gated;
           const collection = a.collection || parts[0];
           if (!collection) return reply({ ok: false, msg: "collection name required" });
           const result = await getAtomicTemplates(net, collection, { limit: a.limit });
@@ -2165,7 +2995,63 @@ module.exports = (ctx) => {
           return reply({ ok: true, cleared: true });
         }
 
-        case "transfernft": return reply({ ok: true, ...(await transferNFT(a)) });
+        case "transfernft": {
+          const net = resolveNet(a.network);
+          const gated = gateAtomicAssets(net);
+          if (gated) return gated;
+          return reply({ ok: true, ...(await transferNFT(a)) });
+        }
+
+        // ── Light Marketplace (AtomicMarket, WAX only) ───────────────
+        case "market-browse": case "marketbrowse": {
+          const net = resolveNet(a.network);
+          const gated = gateAtomicMarket(net);
+          if (gated) return gated;
+          const result = await marketBrowse(net, {
+            collection: a.collection, schema: a.schema,
+            template_id: a.template_id != null ? a.template_id : a.template,
+            seller: a.seller, symbol: a.symbol, min_price: a.min_price, max_price: a.max_price,
+            sort: a.sort, order: a.order, limit: a.limit, page: a.page, state: a.state,
+            search: a.search || a.q,
+          });
+          return reply({ ok: true, ...result });
+        }
+        case "market-listing": case "marketlisting": {
+          const net = resolveNet(a.network);
+          const gated = gateAtomicMarket(net);
+          if (gated) return gated;
+          const result = await marketListing(net, a.sale_id || a.saleId || a.id || parts[0]);
+          return reply({ ok: true, ...result });
+        }
+        case "market-price": case "marketprice": {
+          const net = resolveNet(a.network);
+          const gated = gateAtomicMarket(net);
+          if (gated) return gated;
+          const result = await marketPrice(net, {
+            collection: a.collection || parts[0],
+            template_id: a.template_id != null ? a.template_id : a.template,
+            schema: a.schema, symbol: a.symbol,
+          });
+          return reply({ ok: true, ...result });
+        }
+        case "market-list": case "marketlist": {
+          const net = resolveNet(a.network);
+          const gated = gateAtomicMarket(net);
+          if (gated) return gated;
+          return reply({ ok: true, ...(await marketList(a)) });
+        }
+        case "market-buy":  case "marketbuy":  {
+          const net = resolveNet(a.network);
+          const gated = gateAtomicMarket(net);
+          if (gated) return gated;
+          return reply({ ok: true, ...(await marketBuy(a)) });
+        }
+        case "market-cancel": case "marketcancel": {
+          const net = resolveNet(a.network);
+          const gated = gateAtomicMarket(net);
+          if (gated) return gated;
+          return reply({ ok: true, ...(await marketCancel(a)) });
+        }
 
         case "newaccount": return reply({ ok: true, result: await newAccount(a) });
 
@@ -2339,6 +3225,46 @@ module.exports = (ctx) => {
     }
   }
 
+  // ── Media proxy: fetch external image/video and pipe it through localhost ──
+  // The shell webview may block external URLs (ipfs.io, atomichub, etc.), so the
+  // panel routes every media src through /plugin/wax-wallet/media?url=... instead.
+  // Caches responses for 1 hour; only allows http/https URLs.
+  // Tries IPFS gateway fallback chain when the primary URL is an ipfs.io URL.
+  async function mediaProxy(req, res) {
+    const u = new URL(req.url, "http://x");
+    const target = u.searchParams.get("url");
+    if (!target) { res.writeHead(400); return res.end("missing url"); }
+    if (!/^https?:\/\//i.test(target)) { res.writeHead(400); return res.end("invalid url"); }
+
+    // Build a fallback chain. For ipfs.io URLs, also try dweb.link + atomichub.
+    const urls = [target];
+    if (target.includes("ipfs.io/ipfs/")) {
+      const cid = target.replace(/^https?:\/\/ipfs\.io\/ipfs\//, "").split(/[?#]/)[0];
+      if (cid) {
+        urls.push("https://dweb.link/ipfs/" + cid);
+        urls.push("https://resizer.atomichub.io/images/v1/preview?ipfs=" + encodeURIComponent(cid) + "&size=740");
+      }
+    }
+
+    let lastErr = null;
+    for (const url of urls) {
+      try {
+        const r = await fetch(url, { headers: { connection: "close" } });
+        if (r.ok) {
+          const ct = r.headers.get("content-type") || "image/png";
+          const buf = Buffer.from(await r.arrayBuffer());
+          res.writeHead(200, { "content-type": ct, "cache-control": "public, max-age=3600" });
+          return res.end(buf);
+        }
+        lastErr = `HTTP ${r.status}`;
+      } catch (e) {
+        lastErr = e.message || "fetch error";
+      }
+    }
+    res.writeHead(502);
+    res.end(String(lastErr || "all gateways failed"));
+  }
+
   return {
     onCommand,
     routes: {
@@ -2350,6 +3276,7 @@ module.exports = (ctx) => {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify({ ok: true, networks: Object.values(CHAINS).map(publicChain), current: currentNet().id, default: DEFAULT_NET }));
       },
+      media(req, res) { mediaProxy(req, res); },
     },
   };
 };

@@ -1,8 +1,8 @@
 {
   "id": "wax-wallet",
   "name": "🪙 waxwing",
-  "version": "0.5.8",
-  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.5.8: NFT Inventory Phase B — collection/schema/template discovery commands, All collections view, IPFS gateway fallback, media sniffing, and pull-to-refresh. v0.5.7: NFT Inventory Phase A — read + decode AtomicAssets directly from chain with schema/template cache (memory-only, 30s TTL).","brand": {
+  "version": "0.6.2",
+  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.6.2: login/unlock-gate JS fix (gate renders password + Unlock again), history up to 20 actions via Hyperion (no 503), overview multi-account dashboard, light marketplace (list→buy via AtomicMarket), per-fetch timeouts on all external HTTP calls. v0.6.1: atomicApiGet error msg fix.","brand": {
     "note": "Single source of truth is the BRAND const in index.js (the panel fetches /plugin/wax-wallet/brand). The `name` above is just the office-shelf label and mirrors BRAND.name.",
     "name": "waxwing",
     "logo": "🪙"
@@ -26,6 +26,12 @@
     { "name": "nfttemplates", "args": "<collection> [--limit N]", "desc": "List templates for an AtomicAssets collection (decoded immutable + media)" },
     { "name": "nftcacheclear", "args": "", "desc": "Clear the in-memory AtomicAssets metadata cache" },
     { "name": "transfernft", "args": "{from,to,asset_ids[],memo?}", "desc": "Build a sign-intent to transfer one or more AtomicAssets NFTs" },
+    { "name": "market-browse", "args": "[--collection <name>] [--sort price|created] [--limit N] [--page N]", "desc": "Light Marketplace: browse active AtomicMarket sales (WAX testnet/mainnet) with filter/sort + decoded NFT media (CIDv0)" },
+    { "name": "market-listing", "args": "<sale_id>", "desc": "Light Marketplace: one AtomicMarket sale — full media + price + assets" },
+    { "name": "market-price", "args": "<collection|template_id> [--symbol WAX]", "desc": "Light Marketplace: floor / average / median price from active listings" },
+    { "name": "market-list", "args": "{from,asset_ids[],price,symbol?,maker_marketplace?}", "desc": "Light Marketplace: build a sign-intent to LIST NFT(s) for sale (announcesale + createoffer) — user signs, no broadcast" },
+    { "name": "market-buy", "args": "{from,sale_id,taker_marketplace?}", "desc": "Light Marketplace: build a sign-intent to BUY a sale (deposit + purchasesale) — user signs, no broadcast" },
+    { "name": "market-cancel", "args": "{from,sale_id}", "desc": "Light Marketplace: build a sign-intent to CANCEL a sale you listed (cancelsale) — user signs, no broadcast" },
     { "name": "create", "args": "<password> [account] [permission]", "desc": "Generate a NEW keypair — auto-resolves on-chain accounts via Hyperion; single account→auto-bind, multiple→return list, none→manual setaccount" },
     { "name": "import", "args": "<password> <privkey> [account] [permission]", "desc": "Import a private key — auto-resolves on-chain accounts via Hyperion (same as create)" },
     { "name": "accounts", "args": "[--network <id>]", "desc": "List stored keys/accounts on the selected network (public info only — never private keys)" },
