@@ -45,9 +45,7 @@ const CHAINS = {
   "wax-testnet": {
     id: "wax-testnet", name: "WAX Testnet", kind: "testnet",
     rpc: "https://testnet.waxsweden.org",
-    rpcs: ["https://waxtestnet.greymass.com", "https://wax-testnet.eosphere.io", "https://testnet.wax.pink.gg"],
     history: "https://testnet.waxsweden.org",
-    historys: ["https://wax-testnet.eosphere.io"],
     chainId: "f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12",
     explorerTx: "https://testnet.waxblock.io/transaction/",
     explorerTxFallback: "https://wax-test.bloks.io/transaction/",
@@ -64,9 +62,7 @@ const CHAINS = {
   "wax-mainnet": {
     id: "wax-mainnet", name: "WAX Mainnet", kind: "mainnet",
     rpc: "https://wax.greymass.com",
-    rpcs: ["https://wax.eosphere.io", "https://wax.pink.gg", "https://wax.cryptolions.io"],
     history: "https://wax.eosphere.io",
-    historys: ["https://wax.greymass.com"],
     chainId: "1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4",
     explorerTx: "https://waxblock.io/transaction/",
     explorerTxFallback: "https://wax.bloks.io/transaction/",
@@ -88,9 +84,7 @@ const CHAINS = {
   "eos-testnet": { // Jungle4
     id: "eos-testnet", name: "EOS Jungle4 (testnet)", kind: "testnet",
     rpc: "https://jungle4.greymass.com",
-    rpcs: ["https://jungle4.eosusa.io", "https://jungle4.eosdac.io"],
     history: "https://jungle4.history.eosnation.io",
-    historys: ["https://jungle4.greymass.com"],
     chainId: "73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d",
     explorerTx: "https://jungle4.eosq.eosnation.io/tx/",
     explorerTxFallback: "https://jungle4.bloks.io/transaction/",
@@ -100,9 +94,7 @@ const CHAINS = {
   "eos-mainnet": {
     id: "eos-mainnet", name: "EOS Mainnet", kind: "mainnet",
     rpc: "https://eos.greymass.com",
-    rpcs: ["https://eos.eosphere.io", "https://eos.api.eosnation.io", "https://eos.eosusa.io"],
     history: "https://eos.hyperion.eosrio.io",
-    historys: ["https://eos.eosphere.io", "https://eos.api.eosnation.io"],
     chainId: "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906",
     explorerTx: "https://bloks.io/transaction/",
     explorerTxFallback: "https://eos.eosq.eosnation.io/tx/",
@@ -113,9 +105,7 @@ const CHAINS = {
   "telos-testnet": {
     id: "telos-testnet", name: "Telos Testnet", kind: "testnet",
     rpc: "https://testnet.telos.net",
-    rpcs: ["https://telos-testnet.eosphere.io"],
     history: "https://testnet.telos.net",
-    historys: ["https://telos-testnet.eosphere.io"],
     chainId: "1eaa0824707c8c16bd25145493bf062aecddfeb56c736f6ba6397f3195f33c9f",
     explorerTx: "https://explorer.telos.net/transaction/",
     explorerTxFallback: "https://telos-test.bloks.io/transaction/",
@@ -125,9 +115,7 @@ const CHAINS = {
   "telos-mainnet": {
     id: "telos-mainnet", name: "Telos Mainnet", kind: "mainnet",
     rpc: "https://mainnet.telos.net",
-    rpcs: ["https://telos.eosphere.io", "https://telos.api.eosnation.io"],
     history: "https://mainnet.telos.net",
-    historys: ["https://telos.eosphere.io", "https://telos.api.eosnation.io"],
     chainId: "4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11",
     explorerTx: "https://explorer.telos.net/transaction/",
     explorerTxFallback: "https://telos.bloks.io/transaction/",
@@ -138,9 +126,7 @@ const CHAINS = {
   "xpr-testnet": {
     id: "xpr-testnet", name: "XPR Network Testnet", kind: "testnet",
     rpc: "https://test.proton.eosusa.io",
-    rpcs: ["https://proton-testnet.eosphere.io"],
     history: "https://test.proton.eosusa.io",
-    historys: [],
     chainId: "71ee83bcf52142d61019d95f9cc5427ba6a0d7ff8accd9e2088ae2abeaf3d3dd",
     explorerTx: "https://explorer.xprnetwork.org/transaction/",
     explorerTxFallback: "https://proton-test.bloks.io/transaction/",
@@ -150,9 +136,7 @@ const CHAINS = {
   "xpr-mainnet": {
     id: "xpr-mainnet", name: "XPR Network (Proton)", kind: "mainnet",
     rpc: "https://proton.eosusa.io",
-    rpcs: ["https://proton.cryptolions.io"],
     history: "https://api-xprnetwork-main.saltant.io",
-    historys: [],
     chainId: "384da888112027f0321850a169f737c33e53b388aad48b5adace4bab97f437e0",
     explorerTx: "https://explorer.xprnetwork.org/transaction/",
     explorerTxFallback: "https://proton.bloks.io/transaction/",
