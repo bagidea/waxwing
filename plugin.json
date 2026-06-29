@@ -1,8 +1,8 @@
 {
   "id": "wax-wallet",
   "name": "🪙 waxwing",
-  "version": "0.6.2",
-  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.6.2: login/unlock-gate JS fix (gate renders password + Unlock again), history up to 20 actions via Hyperion (no 503), overview multi-account dashboard, light marketplace (list→buy via AtomicMarket), per-fetch timeouts on all external HTTP calls. v0.6.1: atomicApiGet error msg fix.","brand": {
+  "version": "0.6.5",
+  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.6.5: balance auto-refresh on tab-switch + visibility-gated poll (~45s), AtomicHub external link in NFT detail (WAX only). v0.6.4: marketplace UX overhaul. v0.6.3: tx history.","brand": {
     "note": "Single source of truth is the BRAND const in index.js (the panel fetches /plugin/wax-wallet/brand). The `name` above is just the office-shelf label and mirrors BRAND.name.",
     "name": "waxwing",
     "logo": "🪙"

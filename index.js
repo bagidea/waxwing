@@ -45,7 +45,12 @@ const CHAINS = {
   "wax-testnet": {
     id: "wax-testnet", name: "WAX Testnet", kind: "testnet",
     rpc: "https://testnet.waxsweden.org",
-    history: "https://testnet.waxsweden.org",
+    history: "https://testnet.wax.eosrio.io",
+    historys: [
+      "https://testnet.wax.eosrio.io",       // verified OK 2026-06-29
+      "https://wax-testnet.eosphere.io",      // verified OK 2026-06-29
+      "https://testnet.waxsweden.org",        // flaky — last resort
+    ],
     chainId: "f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12",
     explorerTx: "https://testnet.waxblock.io/transaction/",
     explorerTxFallback: "https://wax-test.bloks.io/transaction/",
@@ -63,6 +68,11 @@ const CHAINS = {
     id: "wax-mainnet", name: "WAX Mainnet", kind: "mainnet",
     rpc: "https://wax.greymass.com",
     history: "https://wax.eosphere.io",
+    historys: [
+      "https://wax.eosphere.io",             // verified OK 2026-06-29
+      "https://wax.eosusa.io",               // verified OK 2026-06-29
+      "https://wax.cryptolions.io",          // verified OK 2026-06-29
+    ],
     chainId: "1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4",
     explorerTx: "https://waxblock.io/transaction/",
     explorerTxFallback: "https://wax.bloks.io/transaction/",
@@ -95,6 +105,10 @@ const CHAINS = {
     id: "eos-mainnet", name: "EOS Mainnet", kind: "mainnet",
     rpc: "https://eos.greymass.com",
     history: "https://eos.hyperion.eosrio.io",
+    historys: [
+      "https://eos.hyperion.eosrio.io",     // verified OK 2026-06-29
+      "https://eos.eosusa.io",              // verified OK 2026-06-29
+    ],
     chainId: "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906",
     explorerTx: "https://bloks.io/transaction/",
     explorerTxFallback: "https://eos.eosq.eosnation.io/tx/",
@@ -116,6 +130,10 @@ const CHAINS = {
     id: "telos-mainnet", name: "Telos Mainnet", kind: "mainnet",
     rpc: "https://mainnet.telos.net",
     history: "https://mainnet.telos.net",
+    historys: [
+      "https://mainnet.telos.net",            // verified OK 2026-06-29
+      "https://telos.eosusa.io",              // verified OK 2026-06-29
+    ],
     chainId: "4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11",
     explorerTx: "https://explorer.telos.net/transaction/",
     explorerTxFallback: "https://telos.bloks.io/transaction/",
@@ -288,6 +306,13 @@ function _invalidateRpc(netId) { _rpcHealth.delete(netId); }
 // ── History (Hyperion v2) endpoint health — same pattern, longer TTL ──
 const _historyHealth = new Map();
 const HISTORY_HEALTH_TTL_MS = 120_000;
+const HISTORY_HEALTH_TIMEOUT_MS = 5_000;   // per-endpoint health check timeout
+const HISTORY_FETCH_TIMEOUT_MS = 7_000;    // per-request data fetch timeout
+
+// Last-good cache: when all history endpoints are down, return the last successful
+// result instead of an error. Keyed by `${netId}:${account}`, TTL 600 s.
+const _lastHistoryCache = new Map();
+const LAST_HISTORY_CACHE_TTL_MS = 600_000;
 
 function _historyCandidates(chain) {
   const seen = new Set();
@@ -315,7 +340,7 @@ async function _pickHealthyHistory(chain) {
   for (const url of candidates) {
     try {
       const ctl = new AbortController();
-      const tm = setTimeout(() => ctl.abort(), RPC_HEALTH_TIMEOUT_MS);
+      const tm = setTimeout(() => ctl.abort(), HISTORY_HEALTH_TIMEOUT_MS);
       const res = await fetch(`${url}/v2/health`, {
         headers: { connection: "close" },
         signal: ctl.signal,
@@ -605,23 +630,73 @@ async function tokenBalance(chain, name, symbol, contract) {
 }
 
 // Tx history via Hyperion v2 (best-effort: not every node runs history).
+// Now resilient: multiple endpoints with health-checked failover, per-request
+// timeout, last-good cache for graceful degradation when all endpoints are down.
 async function history(chain, name, limit, _retried) {
   if (!name) throw new Error("account name required");
   const n = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+  const cacheKey = `${chain.id}:${name}`;
+
+  // Resolve a healthy history endpoint — failover across all candidates.
   let historyUrl;
   try {
     historyUrl = await _pickHealthyHistory(chain);
   } catch (e) {
-    throw new Error(`history endpoint unreachable (${chain.id}): ${e.message}`);
+    // All endpoints dead — try last-good cache
+    const cached = _lastHistoryCache.get(cacheKey);
+    if (cached && (Date.now() - cached.ts) < LAST_HISTORY_CACHE_TTL_MS) {
+      return { account: name, count: cached.data.actions.length, actions: cached.data.actions,
+        explorerTx: chain.explorerTx, fromCache: true, degraded: false,
+        note: "Showing last known history — live API is temporarily unavailable" };
+    }
+    // No cache available either — graceful degradation
+    return { account: name, count: 0, actions: [], explorerTx: chain.explorerTx,
+      degraded: true,
+      msg: "History ไม่พร้อมชั่วคราว — API ประวัติของเครือข่ายล่มชั่วคราว ลองใหม่อีกครั้ง",
+      detail: `all ${_historyCandidates(chain).length} history endpoint(s) unreachable` };
   }
+
   const url = `${historyUrl}/v2/history/get_actions?account=${encodeURIComponent(name)}&limit=${n}&simple=true&sort=desc`;
+
+  // Fetch with per-request timeout — an endpoint can pass the health check
+  // but hang on the actual data query.
   let res;
-  try { res = await fetch(url, { headers: { connection: "close" } }); }
+  try {
+    const ctl = new AbortController();
+    const tm = setTimeout(() => ctl.abort(), HISTORY_FETCH_TIMEOUT_MS);
+    res = await fetch(url, { headers: { connection: "close" }, signal: ctl.signal });
+    clearTimeout(tm);
+  }
   catch (e) {
     if (!_retried) { _invalidateHistory(chain.id); return history(chain, name, limit, true); }
-    throw new Error(`history endpoint unreachable: ${e?.cause?.code || e.message}`);
+    // Retry exhausted — degrade gracefully with last-good cache
+    const cached = _lastHistoryCache.get(cacheKey);
+    if (cached && (Date.now() - cached.ts) < LAST_HISTORY_CACHE_TTL_MS) {
+      return { account: name, count: cached.data.actions.length, actions: cached.data.actions,
+        explorerTx: chain.explorerTx, fromCache: true, degraded: false,
+        note: "Showing last known history — live API is temporarily unavailable" };
+    }
+    return { account: name, count: 0, actions: [], explorerTx: chain.explorerTx,
+      degraded: true,
+      msg: "History ไม่พร้อมชั่วคราว — API ประวัติของเครือข่ายล่มชั่วคราว ลองใหม่อีกครั้ง",
+      detail: `fetch failed: ${e?.cause?.code || e.message || "timeout"}` };
   }
-  if (!res.ok) throw new Error(`history HTTP ${res.status} (node may not run Hyperion)`);
+
+  if (!res.ok) {
+    // Non-200 — invalidate and retry once, then degrade
+    if (!_retried) { _invalidateHistory(chain.id); return history(chain, name, limit, true); }
+    const cached = _lastHistoryCache.get(cacheKey);
+    if (cached && (Date.now() - cached.ts) < LAST_HISTORY_CACHE_TTL_MS) {
+      return { account: name, count: cached.data.actions.length, actions: cached.data.actions,
+        explorerTx: chain.explorerTx, fromCache: true, degraded: false,
+        note: "Showing last known history — live API returned an error" };
+    }
+    return { account: name, count: 0, actions: [], explorerTx: chain.explorerTx,
+      degraded: true,
+      msg: "History ไม่พร้อมชั่วคราว — API ประวัติของเครือข่ายล่มชั่วคราว ลองใหม่อีกครั้ง",
+      detail: `HTTP ${res.status} from ${historyUrl}` };
+  }
+
   const json = await res.json();
   const acts = json.simple_actions || json.actions || [];
   const items = acts.map((x) => {
@@ -636,6 +711,10 @@ async function history(chain, name, limit, _retried) {
       explorer: (txId ? explorerTxUrl(chain.id, txId).primary : null),
     };
   });
+
+  // Cache this successful result
+  _lastHistoryCache.set(cacheKey, { data: { actions: items }, ts: Date.now() });
+
   return { account: name, count: items.length, actions: items, explorerTx: chain.explorerTx };
 }
 
@@ -852,6 +931,10 @@ function ipfsUrlSet(cid, opts = {}) {
 
 function resolveMediaUrl(value, opts = {}) {
   if (!value) return null;
+  // Guard against literal string "null" / "undefined" / empty-ish values that
+  // the AA API sometimes emits when a field is declared but has no real data.
+  const sv = String(value).trim().toLowerCase();
+  if (sv === "null" || sv === "undefined" || sv === "none" || sv.length < 3) return null;
   const v = stripIpfsPrefix(value);
   if (/^https?:\/\//i.test(v)) return v;
   return ipfsUrl(v, opts);
@@ -863,6 +946,10 @@ function extractMedia(immutable, templateImmutable) {
     const v = merged[field];
     if (v != null && String(v).trim()) {
       const raw = String(v).trim();
+      // Skip literal "null" / "undefined" / empty strings that the AA API emits
+      // for declared-but-empty media fields (defect: media:null).
+      const low = raw.toLowerCase();
+      if (low === "null" || low === "undefined" || low === "none") continue;
       return { field, type: detectMediaType(raw), url: resolveMediaUrl(raw, { thumbnail: field === "backimg" }) };
     }
   }
@@ -1087,6 +1174,26 @@ async function marketListing(chain, saleId) {
 async function marketPrice(chain, opts = {}) {
   if (!opts.collection && (opts.template_id == null || opts.template_id === ""))
     throw new Error("market-price needs a collection or template_id");
+  // Collection marketplace fee (the collection author's cut). AtomicAssets exposes
+  // it on the collection config as `market_fee` (0.00–0.15); AtomicMarket deducts
+  // it from the SELLER's proceeds, so the buyer still pays the listing price as-is
+  // (verified: market-buy deposits exactly listing_price, taker_marketplace:"").
+  // Mainnet only — testnet/maker-less listings carry nothing to show, so we leave
+  // it null and the UI hides the line (MEMO-market-ui-contract §4).
+  let fee = null;
+  if (String(chain.id).endsWith("mainnet") && opts.collection && chainFeatures(chain).atomicAssets) {
+    try {
+      const cj = await atomicApiGet(chain, `${aaApiPath(chain)}/collections?collection_name=${encodeURIComponent(String(opts.collection).trim())}&limit=1`);
+      const mf = cj && Array.isArray(cj.data) && cj.data[0] ? Number(cj.data[0].market_fee) : NaN;
+      // Normalize: API = fraction (e.g. 0.05), RPC table = percentage → /100.
+      // Default 2 % when unset, cap 15 % (AtomicAssets double range is 0–0.15).
+      const ratio = Number.isFinite(mf) ? Math.max(0, Math.min(mf, 0.15)) : 0.02;
+      if (ratio > 0) {
+        const pct = ratio * 100;
+        fee = { ratio, bps: Math.round(ratio * 10000), label: `${pct % 1 ? pct.toFixed(1) : pct}%` };
+      }
+    } catch { /* collection config unreachable on this endpoint — hide the fee line */ }
+  }
   const q = new URLSearchParams();
   q.set("state", "1"); q.set("sort", "price"); q.set("order", "asc"); q.set("limit", "100");
   if (opts.collection) q.set("collection_name", String(opts.collection).trim());
@@ -1100,7 +1207,7 @@ async function marketPrice(chain, opts = {}) {
     template_id: opts.template_id != null && opts.template_id !== "" ? String(opts.template_id) : null,
     schema: opts.schema || null,
   };
-  if (!rows.length) return { network: chain.id, scope, symbol: opts.symbol || null, listings: 0, floor: null, average: null, median: null };
+  if (!rows.length) return { network: chain.id, scope, symbol: opts.symbol || null, listings: 0, floor: null, average: null, median: null, fee };
   const bySym = {};
   for (const s of rows) {
     const k = s.price.token_symbol;
@@ -1121,6 +1228,7 @@ async function marketPrice(chain, opts = {}) {
     floor: { amount: ps[0], display: fmt(ps[0]) },
     average: { amount: Number((sum / ps.length).toFixed(prec)), display: fmt(sum / ps.length) },
     median: { amount: Number(median.toFixed(prec)), display: fmt(median) },
+    fee,
     note: ps.length >= 100 ? "sampled from the cheapest 100 active listings" : "over all active listings",
   };
 }
@@ -2459,6 +2567,22 @@ module.exports = (ctx) => {
     const settlement = `${symObj.precision},${symObj.code}`;
     const maker = p.maker_marketplace ? assertAccountName(p.maker_marketplace, "maker_marketplace") : "";
 
+    // Look up the collection's market_fee so the Sign popup shows the real deduction.
+    // Same pattern as marketPrice; mainnet only (testnet has no marketplace fee).
+    let market_fee = null;
+    const mktCol = p.collection && String(p.collection).trim();
+    if (mktCol && String(chain.id).endsWith("mainnet") && chainFeatures(chain).atomicAssets) {
+      try {
+        const cj = await atomicApiGet(chain, `${aaApiPath(chain)}/collections?collection_name=${encodeURIComponent(mktCol)}&limit=1`);
+        const mf = cj && Array.isArray(cj.data) && cj.data[0] ? Number(cj.data[0].market_fee) : NaN;
+        const ratio = Number.isFinite(mf) ? Math.max(0, Math.min(mf, 0.15)) : 0.02;
+        if (ratio > 0) {
+          const pct = ratio * 100;
+          market_fee = { ratio, bps: Math.round(ratio * 10000), label: `${pct % 1 ? pct.toFixed(1) : pct}%` };
+        }
+      } catch { /* fee lookup failed — UI hides the line */ }
+    }
+
     const store = loadStore(FILE);
     const { rec, actor: seller, permission } = resolveSigner(store, chain, p.from || p.seller);
     const announce = {
@@ -2474,7 +2598,7 @@ module.exports = (ctx) => {
     return registerIntent({
       kind: "market-list", actor: seller, permission, publicKey: rec.publicKey,
       networkId: chain.id, actions: [announce, offer],
-      view: { seller, asset_ids: assetIds, listing_price: priceStr, settlement_symbol: settlement, marketplace: m.contract, maker_marketplace: maker || null },
+      view: { seller, asset_ids: assetIds, listing_price: priceStr, settlement_symbol: settlement, marketplace: m.contract, maker_marketplace: maker || null, market_fee },
       result: { kind: "market-list", seller, asset_ids: assetIds, listing_price: priceStr, settlement_symbol: settlement },
     });
   }

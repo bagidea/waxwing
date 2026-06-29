@@ -148,6 +148,12 @@
                 box-shadow:0 12px 30px -8px rgba(255,159,69,.5), inset 0 1px 0 rgba(255,255,255,.4);
                 font-weight:800; letter-spacing:.02em; }
   button.seal .ic { stroke:#2a1605; }
+  button.btn.buy-now { background:linear-gradient(180deg,#3aa876,#1e7e58); color:#fff; border:1px solid #5bd6a0;
+                       box-shadow:0 8px 22px -10px rgba(91,214,160,.55); }
+  button.btn.buy-now .ic { stroke:var(--ok); }
+  button.btn.danger { background:linear-gradient(180deg,#c0394a,#8b1f2d); color:#ffeaea; border:1px solid #ff6b81;
+                     box-shadow:0 8px 22px -10px rgba(255,107,129,.55); }
+  button.btn.danger .ic { stroke:var(--bad); }
 
   .hint { font-size:11px; color:var(--mut); margin-top:8px; }
   .msg { font-size:12px; margin-top:10px; }
@@ -205,6 +211,19 @@
   .tx-link:focus-visible { outline:2px solid var(--acc); outline-offset:2px; border-radius:2px; }
   /* exp-link uses inline-flex (icon+text); don't let tx-link override it */
   .exp-link { display:inline-flex; }
+
+  /* degraded history — all endpoints down */
+  .degraded-card {
+    text-align:center; padding:28px 16px;
+    background:linear-gradient(180deg,rgba(255,207,107,.06),rgba(255,107,129,.04));
+    border:1px solid rgba(255,207,107,.18); border-radius:16px;
+  }
+  .degraded-msg { font-size:13px; color:var(--warn); margin-bottom:14px; line-height:1.6; }
+  .cache-note {
+    font-size:11.5px; color:var(--dim); text-align:center;
+    padding:7px 12px; margin-bottom:10px;
+    background:rgba(94,200,255,.05); border:1px solid rgba(94,200,255,.12); border-radius:10px;
+  }
 
   /* resource detail card (stake screen) */
   .resblock { margin-top:13px; }
@@ -469,6 +488,8 @@
 .nft-grid.list { display:flex; flex-direction:column; gap:8px; }
 .nft { background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line); border-radius:16px; overflow:hidden; cursor:pointer; transition:border-color .12s, transform .12s; }
 .nft:hover { border-color:rgba(120,170,255,.5); transform:translateY(-1px); }
+.nft:active { border-color:var(--acc); transform:scale(.985); }
+.nft:focus-visible { outline:2px solid var(--acc); outline-offset:2px; border-color:rgba(120,170,255,.65); }
 .nft-grid.list .nft { display:flex; align-items:center; gap:10px; padding:9px; border-radius:14px; }
 .nft .art { position:relative; aspect-ratio:1; background:#0a1120; display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .nft-grid.list .nft .art { width:56px; height:56px; border-radius:10px; flex:0 0 auto; aspect-ratio:auto; }
@@ -901,6 +922,7 @@ pre.rawjson .num { color:#ffcf6b; }
         <div class="asset-actions">
           <button class="btn seal" id="assetTransfer"><svg class="ic"><use href="#g-send"/></svg> Transfer</button>
           <button class="btn ghost" id="assetList"><svg class="ic"><use href="#g-tag"/></svg> List for sale</button>
+          <button class="btn ghost" id="assetAtomicHub"><svg class="ic"><use href="#g-external"/></svg> AtomicHub</button>
           <button class="btn ghost" id="assetExplorer"><svg class="ic"><use href="#g-external"/></svg> Explorer</button>
         </div>
         <div class="card">
@@ -1442,10 +1464,33 @@ async function loadHistory() {
   if (!name) { $("histView").innerHTML = `<div class="muted">No transactions yet.</div>`; return; }
   $("histView").innerHTML = `<div class="muted">Loading…</div>`;
   const r = await cmd("history", { name, limit:20 });
-  if (!r.ok) { $("histView").innerHTML = `<div class="muted">History unavailable: ${escapeHtml(r.msg||"")}</div>`; return; }
-  const acts = r.history.actions || []; const explorer = r.history.explorerTx || STATE.chain.explorerTx;
-  if (!acts.length) { $("histView").innerHTML = `<div class="muted">No transactions yet.</div>`; return; }
-  $("histView").innerHTML = acts.map(x => {
+  if (!r.ok) {
+    // Engine-level error (shouldn't happen with new degraded mode, but keep as safety net)
+    $("histView").innerHTML = renderDegradedHistory(escapeHtml(r.msg||"History unavailable"));
+    return;
+  }
+  const h = r.history;
+  const acts = h.actions || [];
+  const explorer = h.explorerTx || STATE.chain.explorerTx;
+
+  // Graceful degradation — all endpoints down, show friendly message + retry
+  if (h.degraded) {
+    $("histView").innerHTML = renderDegradedHistory(h.msg || "History ไม่พร้อมชั่วคราว");
+    return;
+  }
+
+  // From cache — show data with a subtle stale-data note
+  let cacheNote = "";
+  if (h.fromCache) {
+    cacheNote = `<div class="cache-note">📡 ${escapeHtml(h.note || "Showing cached history — live API unavailable")}</div>`;
+  }
+
+  if (!acts.length) {
+    $("histView").innerHTML = `${cacheNote}<div class="muted">No transactions yet.</div>`;
+    return;
+  }
+
+  $("histView").innerHTML = cacheNote + acts.map(x => {
     const out = x.from === name, cls = out?"out":"in";
     const arrow = out ? `→ ${escapeHtml(x.to||"?")}` : `← ${escapeHtml(x.from||"?")}`;
     const amt = x.amount || x.quantity || ""; const t = (x.time||"").replace("T"," ").slice(5,16);
@@ -1459,6 +1504,13 @@ async function loadHistory() {
       <span class="amt ${cls}">${out?"-":"+"}${escapeHtml(amt)}</span></div>
       <div class="muted" style="font-size:11px">${t} · ${tx} ${x.memo?("· "+escapeHtml(x.memo)):""}</div></div>`;
   }).join("");
+}
+
+function renderDegradedHistory(msg) {
+  return `<div class="degraded-card">
+    <div class="degraded-msg">🛜 ${escapeHtml(msg)}</div>
+    <button class="btn sm outline retry-btn" onclick="loadHistory()">🔄 Retry</button>
+  </div>`;
 }
 $("actRefresh").onclick = loadHistory;
 // Delegated listener: clicking a tx link opens the block explorer in the real browser.
@@ -1567,8 +1619,21 @@ function openSignSheet(intent) {
     if (intent.seller) rows += kv("Seller", escapeHtml(intent.seller));
     if (intent.sale_id) rows += kv("Sale #", escapeHtml(String(intent.sale_id)));
     if (intent.price) rows += kv("You pay", `<b style="color:var(--acc)">${escapeHtml(intent.price)}</b>`);
+    if (danger) rows += kv("Fee", `<span class="muted">marketplace fee is on the seller (not you)</span>`);
   } else if (k === "market-list") {
-    if (intent.listing_price) rows += kv("List price", `<b style="color:var(--acc)">${escapeHtml(intent.listing_price)}</b>`);
+    if (intent.listing_price) {
+      rows += kv("List price", `<b style="color:var(--acc)">${escapeHtml(intent.listing_price)}</b>`);
+      if (danger && intent.listing_price && intent.market_fee && intent.market_fee.ratio > 0) {
+        const priceVal = parseFloat(String(intent.listing_price).split(" ")[0]);
+        if (priceVal > 0) {
+          const fee = intent.market_fee;
+          const netVal = priceVal * (1 - fee.ratio);
+          const sym = String(intent.listing_price).split(" ").slice(1).join(" ") || "";
+          rows += kv("You receive", `<b style="color:var(--ok)">≈ ${netVal.toFixed(8).replace(/0+$/,"").replace(/\.$/,"")} ${escapeHtml(sym)}</b>`);
+          rows += kv("Fee", `<span class="muted">− ${escapeHtml(fee.label)} collection fee (deducted from seller)</span>`);
+        }
+      }
+    }
     if (intent.marketplace) rows += kv("Marketplace", escapeHtml(intent.marketplace));
   } else if (k === "market-cancel") {
     if (intent.sale_id) rows += kv("Sale #", escapeHtml(String(intent.sale_id)));
@@ -3276,6 +3341,9 @@ function proxyUrl(url) {
   if (!url || typeof url !== "string") return "";
   const s = url.trim();
   if (!s) return "";
+  // Defense: skip bogus URLs from literal "null"/"undefined" media values.
+  const low = s.toLowerCase();
+  if (/\/(null|undefined|none)([?#]|$)/.test(low)) return "";
   // Data URIs, relative URLs, and already-proxied URLs pass through unchanged.
   if (s.startsWith("data:") || s.startsWith("/") || s.includes("/plugin/wax-wallet/media")) return s;
   // External URLs go through the local proxy.
@@ -3533,7 +3601,7 @@ function renderInventoryGrid() {
     const verified = a.collection_authorized ? `<svg class="ic"><use href="#g-check"/></svg>` : "";
     return `
       <article class="nft" role="button" tabindex="0" data-aid="${escapeHtml(a.asset_id)}" title="${escapeHtml(a.name || "Asset")}">
-        <div class="art" style="background:${collectionGradient(a.collection)}">${img}\n          <svg class="glyph hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>${stageChip}${qtyChip}
+        <div class="art" style="background:${collectionGradient(a.collection)}">${img}\n          <svg class="glyph ${a.image_url?"hide":""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>${stageChip}${qtyChip}
         </div>
         <div class="meta">
           <div class="nm2">${escapeHtml(a.name || `${a.collection} #${a.asset_id}`)}</div>
@@ -3777,6 +3845,9 @@ async function showAssetDetail(assetId) {
   INV.currentAsset = a;
   $("assetSkeleton").classList.add("hide");
   $("assetLoaded").classList.remove("hide");
+  // AtomicHub link: only WAX mainnet + testnet (EOS/Telos/XPR have no AtomicHub deployment)
+  const isWax = /^wax-/.test(String(STATE.chain.id));
+  $("assetAtomicHub").classList.toggle("hide", !isWax);
 
   $("assetName").textContent = a.name || `${a.collection} #${a.asset_id}`;
   $("assetSub").textContent = `${a.name || "Asset"} · #${a.asset_id}`;
@@ -3899,6 +3970,12 @@ $("assetExplorer").onclick = () => {
   const url = `${STATE.chain.explorerTx ? STATE.chain.explorerTx.replace("transaction/", "") : "https://waxblock.io/"}account/atomicassets?tab=nfts`;
   openExt(url);
 };
+$("assetAtomicHub").onclick = () => {
+  const a = INV.currentAsset; if (!a) return;
+  const cid = String(STATE.chain.id);
+  const host = cid.endsWith("mainnet") ? "wax.atomichub.io" : "wax-test.atomichub.io";
+  openExt(`https://${host}/explorer/asset/${encodeURIComponent(a.asset_id)}`);
+};
 
 /* ════════════ MARKETPLACE — "Mine | Market" segment in Inventory ════════════
    "Market" folds AtomicMarket listings into the Inventory screen beside "Mine"
@@ -3957,7 +4034,7 @@ async function loadMarket(force) {
   MKT.loading = false;
   if (!r.ok) {
     $("mktGrid").innerHTML = "";
-    $("mktEmpty").innerHTML = `<svg class="ic"><use href="#g-alert"/></svg><div>Couldn't load the market.</div><div class="sub" style="margin-top:4px">${escapeHtml(r.msg||"")}</div>`;
+    $("mktEmpty").innerHTML = `<svg class="ic"><use href="#g-alert"/></svg><div>Couldn't load the market.</div><div class="sub" style="margin-top:4px">${escapeHtml(r.msg||"")}</div><button class="btn sm outline" style="margin-top:10px" onclick="loadMarket(true)">🔄 Try again</button>`;
     $("mktEmpty").classList.remove("hide");
     return;
   }
@@ -3994,20 +4071,16 @@ function marketTile(sale) {
   const price = salePriceStr(sale);
   const badge = mine ? `<span class="badge mine">YOURS</span>` : `<span class="badge sale">FOR SALE</span>`;
   const more = (sale.asset_ids||[]).length > 1 ? `<span class="qty">×${sale.asset_ids.length}</span>` : "";
-  const buy = mine
-    ? `<button class="btn sm ghost cancel" data-cancel="${escapeHtml(sale.sale_id)}" title="Cancel this listing — releases the NFT back to you">Cancel</button>`
-    : `<button class="btn sm buy" data-sale="${escapeHtml(sale.sale_id)}">Buy</button>`;
   return `
     <article class="nft" role="button" tabindex="0" data-sale="${escapeHtml(sale.sale_id)}" title="${escapeHtml(name)}">
       <div class="art" style="background:${collectionGradient(col)}">${img}
-        <svg class="glyph hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>${badge}${more}
+        <svg class="glyph ${media?"hide":""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>${badge}${more}
       </div>
       <div class="meta">
         <div class="nm2">${escapeHtml(name)}</div>
         <div class="col"><svg class="ic"><use href="#g-grid"/></svg>${escapeHtml(col)}</div>
       </div>
       <div class="price-row">
-        ${buy}
         <span class="price"><b>${escapeHtml(price)}</b>${usdLine(sale.price ? sale.price.amount : 0)}</span>
       </div>
     </article>`;
@@ -4034,10 +4107,6 @@ function renderMarketGrid() {
     const sale = MKT.sales.find((s) => String(s.sale_id) === card.dataset.sale);
     card.onclick = () => openListingSheet(sale);
     card.onkeydown = (e) => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); openListingSheet(sale); } };
-    const buyBtn = card.querySelector(".buy");
-    if (buyBtn && !buyBtn.disabled) buyBtn.onclick = (e) => { e.stopPropagation(); buyListing(sale.sale_id); };
-    const cancelBtn = card.querySelector(".cancel");
-    if (cancelBtn) cancelBtn.onclick = (e) => { e.stopPropagation(); cancelListing(sale.sale_id); };
   }
 }
 
@@ -4054,8 +4123,8 @@ function openListingSheet(sale) {
   const kv = (kk, vv, emph) => `<div class="sign-kv"><span class="k">${kk}</span><span class="v"${emph?' style="font-weight:800;color:var(--fg)"':""}>${vv}</span></div>`;
   const ids = (sale.asset_ids||[]);
   const cta = mine
-    ? `<button class="btn ghost" id="lsCancel"><svg class="ic"><use href="#g-x"/></svg> Cancel listing</button>`
-    : `<button class="btn" id="lsBuy"><svg class="ic"><use href="#g-tag"/></svg> Buy now</button>`;
+    ? `<button class="btn danger" id="lsCancel"><svg class="ic"><use href="#g-x"/></svg> Cancel listing</button>`
+    : `<button class="btn buy-now" id="lsBuy"><svg class="ic"><use href="#g-tag"/></svg> Buy now</button>`;
   openSheet(`
     <div class="ls-hero" style="background:${collectionGradient(col)}">${heroImg}<svg class="glyph ${media?"hide":""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8"/></svg>${mine?`<span class="badge mine">YOURS</span>`:`<span class="badge sale">FOR SALE</span>`}</div>
     <h3>${escapeHtml(name)}</h3>
@@ -4067,31 +4136,73 @@ function openListingSheet(sale) {
       ${kv("Sale #", escapeHtml(String(sale.sale_id)))}
       ${mine ? "" : kv("You pay", `<b style="color:var(--acc)">${escapeHtml(priceDisp)}</b>`, true)}
     </div>
+    <div id="lsPriceStats" class="muted" style="margin-top:10px;font-size:12px;line-height:1.5">Loading market stats…</div>
     <div style="margin-top:14px">${cta}</div>
     <div class="msg hide" id="lsBuyMsg" style="margin-top:10px"></div>
-    <button class="btn ghost sm" id="lsExplorer" style="margin-top:8px"><svg class="ic"><use href="#g-external"/></svg> View on AtomicHub</button>
+    <button class="btn ghost sm" id="lsExplorer" style="margin-top:8px"><svg class="ic"><use href="#g-external"/></svg> View on explorer</button>
   `);
   // keep this sheet open so an engine error (stale sale, etc.) shows inline; on success
   // openSignSheet replaces the sheet content with the amber Sign step.
   if (!mine && $("lsBuy")) $("lsBuy").onclick = () => buyListing(sale.sale_id, $("lsBuyMsg"));
   if (mine && $("lsCancel")) $("lsCancel").onclick = () => cancelListing(sale.sale_id, $("lsBuyMsg"));
   $("lsExplorer").onclick = () => {
-    const base = /mainnet/.test(STATE.chain.id||"") ? "https://wax.atomichub.io" : "https://wax-test.atomichub.io";
-    openExt(`${base}/market/sale/${encodeURIComponent(sale.sale_id)}`);
+    const expBase = (STATE.chain.explorerTx || "").replace(/transaction\/$/, "");
+    const expFallback = (STATE.chain.explorerTxFallback || "").replace(/transaction\/$/, "");
+    const base = expBase || expFallback || "";
+    if (base) openExt(`${base}account/${encodeURIComponent(sale.seller)}`);
+    else openExt(`https://waxblock.io/account/${encodeURIComponent(sale.seller)}`);
   };
+  // Fetch floor / average for context (collection-scoped market-price, no global fallback).
+  if (sale.collection) {
+    const sym = sale.price ? sale.price.token_symbol : undefined;
+    (async () => {
+      const pr = await cmd("market-price", {
+        collection: sale.collection,
+        template_id: sale.assets?.[0]?.template_id || undefined,
+        symbol: sym,
+      });
+      const el = $("lsPriceStats");
+      if (!el) return;
+      if (pr.ok && pr.floor) {
+        const floorDisp = escapeHtml(pr.floor.display || "");
+        const avgDisp = escapeHtml(pr.average?.display || "");
+        const n = pr.listings || 0;
+        const feeDisp = pr.fee && pr.fee.ratio > 0 ? escapeHtml(pr.fee.label) : "";
+        el.innerHTML = `📊 ${n} active · Floor <b>${floorDisp}</b> · Avg <b>${avgDisp}</b>` + (feeDisp ? `<br>🏷 Collection fee <b>${feeDisp}</b> — paid by the seller; you pay the listed price.` : "");
+      } else {
+        el.innerHTML = "";
+      }
+    })();
+  } else {
+    const el = $("lsPriceStats"); if (el) el.innerHTML = "";
+  }
 }
 
 async function buyListing(saleId, msgEl) {
   const tgt = msgEl || $("mktMsg");   // inline, no alert() — engine errors are {ok:false,msg} (contract §6)
   if (!STATE.active) { flash(tgt, "Pick an account first.", false); return; }
   if (!STATE.unlocked) { $("gate").classList.remove("hide"); return; }
+  // Pre-flight: balance + CPU check before even calling the engine.
+  const sale = MKT.sales.find((s) => String(s.sale_id) === String(saleId));
+  const price = sale && sale.price ? sale.price.amount : 0;
+  if (price > 0 && STATE.info) {
+    const bal = parseFloat(String(STATE.info.coreBalance || "0").split(" ")[0]) || 0;
+    const cpuAvail = STATE.info.cpu ? (STATE.info.cpu.max - (STATE.info.cpu.used || 0)) : 0;
+    const issues = [];
+    if (bal < price) issues.push(`balance ${bal.toFixed(4)} ${STATE.chain.coreSymbol} < price ${price} ${STATE.chain.coreSymbol}`);
+    if (cpuAvail < 500) issues.push("CPU nearly exhausted — stake more CPU before trading");
+    if (issues.length) {
+      flash(tgt, `⚠️ Cannot buy: ${issues.join("; ")}.`, false);
+      return;
+    }
+  }
   const r = await cmd("market-buy", { sale_id: saleId, buyer: STATE.active });
   if (r.ok && r.intent) openSignSheet(r.intent);
   else flash(tgt, escapeHtml(r.msg || "Could not prepare the purchase."), false);
 }
 
-// Cancel a listing you own — only your own sales render a Cancel button (mine
-// guard in marketTile/openListingSheet), and the engine re-asserts seller ===
+// Cancel a listing you own — the Cancel button only shows in openListingSheet
+// when mine=true (seller === active account), and the engine re-asserts seller ===
 // signer, so this can't pull someone else's sale. Same inline-error path as buy.
 async function cancelListing(saleId, msgEl) {
   const tgt = msgEl || $("mktMsg");
@@ -4124,25 +4235,52 @@ function openListSheet(asset) {
       <div class="unit-toggle"><button type="button" class="on" style="cursor:default">${escapeHtml(sym)}</button></div>
     </div>
     <div class="calcline" id="lsReceive" style="margin-top:8px">Set your asking price in ${escapeHtml(sym)}</div>
+    <div id="lsFloorHint" class="muted" style="margin-top:8px;font-size:12px;line-height:1.5"></div>
     <button class="btn" id="lsDoList" style="margin-top:14px"><svg class="ic"><use href="#g-tag"/></svg> List for sale</button>
     <div class="msg hide" id="lsMsg"></div>
   `);
+  let listFee = null; // {ratio,bps,label} on mainnet; null on testnet (no maker → nothing to deduct)
   const recalc = () => {
     const v = Number($("lsPrice").value);
-    // testnet: maker_marketplace is null → no marketplace fee, so we don't fabricate a
-    // "you receive" net. Just echo the asking price (honest; matches MEMO-market-ui-contract §4).
-    $("lsReceive").innerHTML = v > 0
-      ? `Listing price <b>${v.toLocaleString(undefined,{maximumFractionDigits:8})} ${escapeHtml(sym)}</b>${MKT.usdRate?` · <span class="muted">≈ $${(v*MKT.usdRate).toLocaleString(undefined,{maximumFractionDigits:2})}</span>`:""}`
-      : `Set your asking price in ${escapeHtml(sym)}`;
+    const usdPart = MKT.usdRate ? ` · <span class="muted">≈ $${(v*MKT.usdRate).toLocaleString(undefined,{maximumFractionDigits:2})}</span>` : "";
+    if (!(v > 0)) { $("lsReceive").innerHTML = `Set your asking price in ${escapeHtml(sym)}`; return; }
+    if (listFee && listFee.ratio > 0) {
+      // AtomicMarket deducts the collection's market_fee from the seller's proceeds;
+      // maker/taker are empty (direct listing), so this is the only deduction.
+      const net = v * (1 - listFee.ratio);
+      $("lsReceive").innerHTML = `Asking <b>${v.toLocaleString(undefined,{maximumFractionDigits:8})} ${escapeHtml(sym)}</b>${usdPart}<br><span class="muted">− ${escapeHtml(listFee.label)} collection fee · you receive <b style="color:var(--ok)">${net.toLocaleString(undefined,{maximumFractionDigits:8})} ${escapeHtml(sym)}</b></span>`;
+    } else {
+      // testnet / no-fee: maker_marketplace is null → no marketplace fee, so we don't
+      // fabricate a "you receive" net. Just echo the asking price (honest; §4).
+      $("lsReceive").innerHTML = `Listing price <b>${v.toLocaleString(undefined,{maximumFractionDigits:8})} ${escapeHtml(sym)}</b>${usdPart}`;
+    }
   };
   $("lsPrice").addEventListener("input", recalc);
   setTimeout(() => $("lsPrice").focus(), 50);
+  // Fetch floor/avg for the collection so the seller can price competitively.
+  if (asset.collection) {
+    (async () => {
+      const pr = await cmd("market-price", {
+        collection: asset.collection,
+        template_id: asset.template_id || undefined,
+      });
+      const el = $("lsFloorHint");
+      if (!el) return;
+      if (pr.ok && pr.floor) {
+        const floorDisp = escapeHtml(pr.floor.display || "");
+        const avgDisp = escapeHtml(pr.average?.display || "");
+        const n = pr.listings || 0;
+        el.innerHTML = `📊 ${n} listed · Floor <b>${floorDisp}</b> · Avg <b>${avgDisp}</b>`;
+      }
+      if (pr.ok && pr.fee && pr.fee.ratio > 0) { listFee = pr.fee; recalc(); }
+    })();
+  }
   $("lsDoList").onclick = async () => {
     const v = Number($("lsPrice").value);
     if (!(v > 0)) { flash($("lsMsg"), "Enter a price greater than zero.", false); return; }
     if (!STATE.unlocked) { closeSheet(); $("gate").classList.remove("hide"); return; }
     $("lsDoList").disabled = true; $("lsDoList").innerHTML = "Preparing…";
-    const r = await cmd("market-list", { seller: STATE.active, asset_ids: [asset.asset_id], price: String(v) });
+    const r = await cmd("market-list", { seller: STATE.active, asset_ids: [asset.asset_id], price: String(v), collection: asset.collection });
     if (r.ok && r.intent) { closeSheet(); openSignSheet(r.intent); }
     else { $("lsDoList").disabled = false; $("lsDoList").innerHTML = `<svg class="ic"><use href="#g-tag"/></svg> List for sale`; flash($("lsMsg"), escapeHtml(r.msg||"Could not prepare the listing."), false); }
   };
@@ -4180,6 +4318,7 @@ const _origShowScreen = showScreen;
 showScreen = function(name) {
   _origShowScreen(name);
   if (name === "inventory") { if (INV.mode === "market") loadMarket(); else loadInventory(); }
+  if (name === "home" && STATE.active) loadAccount(STATE.active);   // refresh balance on tab-switch back to Overview
 };
 
 
@@ -4203,6 +4342,36 @@ $("bioBtn").onclick = async () => {
 try { const ws = new WebSocket(`ws://${location.host}/ws`);
   ws.onmessage = (m) => { try { const e = JSON.parse(m.data); if (e.type==="plugin.event" && e.plugin===PLUGIN) refreshStatus(); } catch {} };
 } catch {}
+
+/* ── balance auto-refresh poll (~45s, visibility-gated) ──
+   Incoming transfers never trigger a UI refresh otherwise — the panel only
+   re-fetches on init, account-switch, and after the user broadcasts.  This
+   polls loadAccount while the Overview screen is visible so the core balance
+   and gauges stay fresh without a manual reload.  Pauses when the panel is
+   hidden or the user is looking at another screen, and clears on unload. */
+let _balPollTimer = null;
+const _BAL_POLL_MS = 45000;
+function _balPollShouldRun() {
+  return document.visibilityState === "visible" &&
+    STATE.active &&
+    (document.querySelector(".screen.active")?.id === "screen-home" ||
+     document.querySelector(".screen.active")?.id === "screen-stake");
+}
+function _balPollTick() {
+  if (!_balPollShouldRun()) return;
+  loadAccount(STATE.active);
+}
+function _balPollArm() {
+  if (_balPollTimer) clearInterval(_balPollTimer);
+  if (_balPollShouldRun()) _balPollTimer = setInterval(_balPollTick, _BAL_POLL_MS);
+  else _balPollTimer = null;
+}
+function _balPollStart() {
+  document.addEventListener("visibilitychange", _balPollArm);
+  window.addEventListener("beforeunload", () => { if (_balPollTimer) clearInterval(_balPollTimer); _balPollTimer = null; });
+  _balPollArm();                               // arm if already visible + on Overview
+}
+_balPollStart();
 
 (async () => {
   applyGateLang();   // localize the onboarding gate before anything paints
