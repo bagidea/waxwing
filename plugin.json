@@ -1,8 +1,8 @@
 {
   "id": "wax-wallet",
   "name": "🪙 waxwing",
-  "version": "0.6.5",
-  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.6.5: balance auto-refresh on tab-switch + visibility-gated poll (~45s), AtomicHub external link in NFT detail (WAX only). v0.6.4: marketplace UX overhaul. v0.6.3: tx history.","brand": {
+  "version": "0.6.6",
+  "description": "waxwing — self-custody Antelope wallet (WAX · EOS · Telos · XPR/Proton, testnet & mainnet, config-driven; default WAX testnet). v0.6.6: marketplace — 'Load more' spacing fixed (clear gap below the last card row, no longer touches cards) + 'View on AtomicHub' on each market card and listing sheet (FOR SALE → /market/sale/{id}, else /explorer/asset/{id}, WAX host per network); tx history pagination — 'More' button appends the next Hyperion page (skip/limit) with a 'No more' end-state, plus a per-tx 'View on explorer' link. v0.6.5: balance auto-refresh on tab-switch + visibility-gated poll (~45s), AtomicHub external link in NFT detail (WAX only). v0.6.4: marketplace UX overhaul. v0.6.3: tx history.","brand": {
     "note": "Single source of truth is the BRAND const in index.js (the panel fetches /plugin/wax-wallet/brand). The `name` above is just the office-shelf label and mirrors BRAND.name.",
     "name": "waxwing",
     "logo": "🪙"
@@ -54,6 +54,7 @@
     { "name": "config", "args": "[autoLockMs=N]", "desc": "Show or set auto-lock duration in ms (min 30000, default 600000 = 10 min)" },
     { "name": "export", "args": "<password>", "desc": "Export the ENCRYPTED wallet (scrypt→AES-GCM, never plaintext) — safe to save as a backup file" },
     { "name": "importwallet", "args": "<password> <data>", "desc": "Restore a wallet from an encrypted export blob — decrypts and merges byNet/accounts/selected" },
+    { "name": "pushaction", "args": "<contract> <action> <json-data> [--actor <account>] [--network <id>]", "desc": "Sign + broadcast ANY contract action immediately (requires unlocked wallet). E.g. pushaction pockethatch1 initplayer '{\"owner\":\"bagideasuper\"}'" },
     { "name": "brand", "args": "", "desc": "Return the brand name/logo (single source of truth)" }
   ],
   "needsKeys": [],

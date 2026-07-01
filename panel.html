@@ -224,6 +224,13 @@
     padding:7px 12px; margin-bottom:10px;
     background:rgba(94,200,255,.05); border:1px solid rgba(94,200,255,.12); border-radius:10px;
   }
+  /* "More" pager / "No more transactions" footer under the history feed */
+  .hist-more { text-align:center; padding:12px 0 4px; font-size:11.5px; }
+  .hist-more .btn { min-width:128px; }
+  .hist-more .btn:disabled { opacity:.6; cursor:default; }
+  /* explicit per-row "View on explorer" action (reuses .tx-link; spaced onto its own line) */
+  .tx-link.view-exp { font-family:inherit; font-weight:700; font-size:11px;
+    display:inline-flex; align-items:center; gap:3px; }
 
   /* resource detail card (stake screen) */
   .resblock { margin-top:13px; }
@@ -507,6 +514,10 @@
 .nft .meta .tpl { font-size:10px; color:var(--dim); margin-top:3px; }
 /* ── marketplace tile additions (Mine | Market segment) ── */
 .nft .price-row { display:flex; align-items:center; gap:8px; padding:0 11px 11px; }
+/* per-tile AtomicHub deep-link (bottom-left of price-row); click stops propagation so the card's open-listing handler doesn't fire */
+.nft .price-row .ah { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; flex:0 0 auto; border-radius:8px; color:var(--mut); cursor:pointer; }
+.nft .price-row .ah:hover { color:var(--acc); background:rgba(94,200,255,.10); }
+.nft .price-row .ah .ic { width:13px; height:13px; }
 .nft .price-row .buy, .nft .price-row .cancel { flex:0 0 auto; }
 .nft .price-row .price { margin-left:auto; text-align:right; line-height:1.15; }
 .nft .price-row .price b { font-size:14px; font-weight:800; color:var(--acc); letter-spacing:-.01em; }
@@ -888,7 +899,7 @@ pre.rawjson .num { color:#ffcf6b; }
         <div id="mktMsg" class="msg hide" style="margin-bottom:10px"></div>
         <div id="mktEmpty" class="hide"><svg class="ic"><use href="#g-tag"/></svg><div>No listings yet.</div></div>
         <div id="mktGrid" class="nft-grid"></div>
-        <div id="mktMoreWrap" class="hide" style="display:flex;gap:8px">
+        <div id="mktMoreWrap" class="hide" style="display:flex;gap:8px;margin-top:20px;justify-content:center">
           <button class="btn ghost" id="mktLess">Show less</button>
           <button class="btn ghost" id="mktMore">Load more</button>
         </div>
@@ -1459,51 +1470,113 @@ async function loadFiat(sym, amount) {
 }
 
 /* ── history ── */
-async function loadHistory() {
+// Pagination state: skip = next offset to fetch from Hyperion, hasMore = another
+// page likely exists, explorer = base explorer URL (per network) used to build tx links.
+let HIST = { skip: 0, hasMore: false, explorer: "" };
+const HIST_PAGE = 20;
+
+async function loadHistory(reset = true) {
   const name = STATE.active;
-  if (!name) { $("histView").innerHTML = `<div class="muted">No transactions yet.</div>`; return; }
-  $("histView").innerHTML = `<div class="muted">Loading…</div>`;
-  const r = await cmd("history", { name, limit:20 });
+  if (!name) { HIST.hasMore = false; $("histView").innerHTML = `<div class="muted">No transactions yet.</div>`; return; }
+  if (reset) {
+    HIST = { skip: 0, hasMore: false, explorer: "" };
+    $("histView").innerHTML = `<div class="muted">Loading…</div>`;
+  } else {
+    setMoreBtn("loading");
+  }
+  const r = await cmd("history", { name, limit: HIST_PAGE, skip: HIST.skip });
   if (!r.ok) {
-    // Engine-level error (shouldn't happen with new degraded mode, but keep as safety net)
-    $("histView").innerHTML = renderDegradedHistory(escapeHtml(r.msg||"History unavailable"));
+    // Engine-level error (shouldn't happen with degraded mode, but keep as a safety net)
+    if (reset) $("histView").innerHTML = renderDegradedHistory(escapeHtml(r.msg || "History unavailable"));
+    else setMoreBtn("more");
     return;
   }
   const h = r.history;
   const acts = h.actions || [];
-  const explorer = h.explorerTx || STATE.chain.explorerTx;
+  HIST.explorer = h.explorerTx || STATE.chain.explorerTx;
 
-  // Graceful degradation — all endpoints down, show friendly message + retry
+  // Graceful degradation — all endpoints down. Page 0 shows the retry card; an
+  // append (page > 0) just restores the pager so the user can retry the next page.
   if (h.degraded) {
-    $("histView").innerHTML = renderDegradedHistory(h.msg || "History ไม่พร้อมชั่วคราว");
+    if (reset) $("histView").innerHTML = renderDegradedHistory(h.msg || "History ไม่พร้อมชั่วคราว");
+    else setMoreBtn("more");
     return;
   }
 
-  // From cache — show data with a subtle stale-data note
-  let cacheNote = "";
+  // Stale last-good cache (page 0 only, never paginates). On a reset show it verbatim
+  // with a stale-data note; on an append just keep the pager — cached data is page 0,
+  // so appending it would duplicate rows.
   if (h.fromCache) {
-    cacheNote = `<div class="cache-note">📡 ${escapeHtml(h.note || "Showing cached history — live API unavailable")}</div>`;
-  }
-
-  if (!acts.length) {
-    $("histView").innerHTML = `${cacheNote}<div class="muted">No transactions yet.</div>`;
+    HIST.hasMore = false;
+    if (reset) {
+      const cacheNote = `<div class="cache-note">📡 ${escapeHtml(h.note || "Showing cached history — live API unavailable")}</div>`;
+      $("histView").innerHTML = acts.length
+        ? cacheNote + acts.map(renderHistItem).join("") + moreFooter()
+        : `${cacheNote}<div class="muted">No transactions yet.</div>`;
+    } else {
+      setMoreBtn("more");
+    }
     return;
   }
 
-  $("histView").innerHTML = cacheNote + acts.map(x => {
-    const out = x.from === name, cls = out?"out":"in";
-    const arrow = out ? `→ ${escapeHtml(x.to||"?")}` : `← ${escapeHtml(x.from||"?")}`;
-    const amt = x.amount || x.quantity || ""; const t = (x.time||"").replace("T"," ").slice(5,16);
-    // txid is a live link — opens the block explorer in the real browser via daemon /open
-    // (Office webviews block target=_blank; see openExt helper above).
-    const txUrl = x.explorer || (x.txId ? explorer + x.txId : "");
-    const tx = (x.txId && txUrl)
-      ? `<span class="tx-link" data-url="${escapeHtml(txUrl)}" tabindex="0" role="link" title="View on explorer: ${escapeHtml(x.txId)}">${escapeHtml(x.txId.slice(0,8))}…</span>`
-      : "";
-    return `<div class="it"><div class="row" style="gap:8px"><span style="flex:1">${escapeHtml(x.action||"")} ${arrow}</span>
-      <span class="amt ${cls}">${out?"-":"+"}${escapeHtml(amt)}</span></div>
-      <div class="muted" style="font-size:11px">${t} · ${tx} ${x.memo?("· "+escapeHtml(x.memo)):""}</div></div>`;
-  }).join("");
+  // Live page.
+  HIST.hasMore = !!h.hasMore;
+  if (reset && !acts.length) {
+    $("histView").innerHTML = `<div class="muted">No transactions yet.</div>`;
+    return;
+  }
+  const rows = acts.map(renderHistItem).join("");
+  const footer = moreFooter();
+  if (reset) {
+    $("histView").innerHTML = rows + footer;
+  } else {
+    // append: drop the old footer, then add the new rows + a fresh footer
+    const old = $("histMore"); if (old) old.remove();
+    $("histView").insertAdjacentHTML("beforeend", rows + footer);
+  }
+}
+
+function renderHistItem(x) {
+  const name = STATE.active;
+  const out = x.from === name, cls = out ? "out" : "in";
+  const arrow = out ? `→ ${escapeHtml(x.to || "?")}` : `← ${escapeHtml(x.from || "?")}`;
+  const amt = x.amount || x.quantity || ""; const t = (x.time || "").replace("T", " ").slice(5, 16);
+  // txid is a live link — opens the block explorer in the real browser via daemon /open
+  // (Office webviews block target=_blank; see openExt helper above).
+  const txUrl = x.explorer || (x.txId ? HIST.explorer + x.txId : "");
+  const tx = (x.txId && txUrl)
+    ? `<span class="tx-link" data-url="${escapeHtml(txUrl)}" tabindex="0" role="link" title="View on explorer: ${escapeHtml(x.txId)}">${escapeHtml(x.txId.slice(0, 8))}…</span>`
+    : "";
+  // explicit per-row "View on explorer" action — same delegated tx-link listener opens it
+  const viewBtn = txUrl
+    ? `<span class="tx-link view-exp" data-url="${escapeHtml(txUrl)}" tabindex="0" role="link">↗ View on explorer</span>`
+    : "";
+  return `<div class="it"><div class="row" style="gap:8px"><span style="flex:1">${escapeHtml(x.action || "")} ${arrow}</span>
+    <span class="amt ${cls}">${out ? "-" : "+"}${escapeHtml(amt)}</span></div>
+    <div class="muted" style="font-size:11px">${t} · ${tx} ${x.memo ? ("· " + escapeHtml(x.memo)) : ""}</div>
+    ${viewBtn ? `<div style="margin-top:4px">${viewBtn}</div>` : ""}</div>`;
+}
+
+// Footer under the feed: a "More" pager while another page is likely, else a quiet
+// "No more transactions" once Hyperion signals we've reached the end.
+function moreFooter() {
+  if (HIST.hasMore) {
+    return `<div class="hist-more" id="histMore"><button class="btn sm outline" id="histMoreBtn" type="button">More</button></div>`;
+  }
+  return `<div class="hist-more muted" id="histMore">No more transactions</div>`;
+}
+
+// Swap the More button's label/state during a fetch without re-rendering the feed.
+function setMoreBtn(state) {
+  const wrap = $("histMore"); if (!wrap) return;
+  const lbl = state === "loading" ? "Loading…" : "More";
+  wrap.outerHTML = `<div class="hist-more" id="histMore"><button class="btn sm outline" id="histMoreBtn" type="button"${state === "loading" ? " disabled" : ""}>${lbl}</button></div>`;
+}
+
+async function loadMore() {
+  if (!HIST.hasMore) return;
+  HIST.skip += HIST_PAGE;
+  await loadHistory(false);
 }
 
 function renderDegradedHistory(msg) {
@@ -1512,12 +1585,15 @@ function renderDegradedHistory(msg) {
     <button class="btn sm outline retry-btn" onclick="loadHistory()">🔄 Retry</button>
   </div>`;
 }
-$("actRefresh").onclick = loadHistory;
+$("actRefresh").onclick = () => loadHistory(true);
 // Delegated listener: clicking a tx link opens the block explorer in the real browser.
 // Office webviews block target=_blank, so we route through the daemon's /open endpoint.
+// Also drives the "More" pager button in the same listener.
 $("histView").addEventListener("click", (e) => {
-  const link = e.target.closest(".tx-link"); if (!link) return;
-  const url = link.getAttribute("data-url"); if (url) { e.preventDefault(); openExt(url); }
+  const link = e.target.closest(".tx-link");
+  if (link) { const url = link.getAttribute("data-url"); if (url) { e.preventDefault(); openExt(url); return; } }
+  const moreBtn = e.target.closest("#histMoreBtn");
+  if (moreBtn) { e.preventDefault(); loadMore(); }
 });
 $("histView").addEventListener("keydown", (e) => {
   const link = e.target.closest(".tx-link"); if (!link) return;
@@ -3991,6 +4067,20 @@ const MKT_SORTS = [
   { sort: "price",   order: "desc", label: "Price ↓" },
 ];
 const isWax = () => /^wax-/.test(STATE.chain && STATE.chain.id || "");
+// AtomicHub deep-link host. AtomicHub only deploys to WAX mainnet + testnet
+// (no EOS/Telos/XPR), and the Market itself is WAX-only — see the isWax() gate.
+function atomicHubHost() {
+  const cid = String((STATE.chain && STATE.chain.id) || "");
+  return cid.endsWith("mainnet") ? "wax.atomichub.io" : "wax-test.atomichub.io";
+}
+// FOR SALE listing → /market/sale/{sale_id}; otherwise fall back to the asset page.
+function atomicHubUrl(sale) {
+  if (!sale) return "";
+  const host = atomicHubHost();
+  if (sale.sale_id) return `https://${host}/market/sale/${encodeURIComponent(sale.sale_id)}`;
+  const aid = (sale.asset_ids && sale.asset_ids[0]) || (sale.assets && sale.assets[0] && sale.assets[0].asset_id);
+  return aid ? `https://${host}/explorer/asset/${encodeURIComponent(aid)}` : "";
+}
 
 // The engine hands back an asset string ("12.00000000 WAX") — don't re-round it
 // (MEMO-market-ui-contract §5). Just drop trailing zeros for a clean tile; precision is kept.
@@ -4081,6 +4171,7 @@ function marketTile(sale) {
         <div class="col"><svg class="ic"><use href="#g-grid"/></svg>${escapeHtml(col)}</div>
       </div>
       <div class="price-row">
+        <span class="ah" role="button" tabindex="0" title="View on AtomicHub" aria-label="View on AtomicHub"><svg class="ic"><use href="#g-external"/></svg></span>
         <span class="price"><b>${escapeHtml(price)}</b>${usdLine(sale.price ? sale.price.amount : 0)}</span>
       </div>
     </article>`;
@@ -4107,6 +4198,14 @@ function renderMarketGrid() {
     const sale = MKT.sales.find((s) => String(s.sale_id) === card.dataset.sale);
     card.onclick = () => openListingSheet(sale);
     card.onkeydown = (e) => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); openListingSheet(sale); } };
+    // per-card AtomicHub deep-link: stopPropagation so the tap doesn't also open the listing sheet
+    const ah = card.querySelector(".ah");
+    if (ah) {
+      const url = atomicHubUrl(sale);
+      const openAh = (e) => { e.stopPropagation(); e.preventDefault(); if (url) openExt(url); };
+      ah.onclick = openAh;
+      ah.onkeydown = (e) => { if (e.key==="Enter"||e.key===" ") { e.stopPropagation(); e.preventDefault(); if (url) openExt(url); } };
+    }
   }
 }
 
@@ -4139,12 +4238,16 @@ function openListingSheet(sale) {
     <div id="lsPriceStats" class="muted" style="margin-top:10px;font-size:12px;line-height:1.5">Loading market stats…</div>
     <div style="margin-top:14px">${cta}</div>
     <div class="msg hide" id="lsBuyMsg" style="margin-top:10px"></div>
-    <button class="btn ghost sm" id="lsExplorer" style="margin-top:8px"><svg class="ic"><use href="#g-external"/></svg> View on explorer</button>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn ghost sm" id="lsAtomicHub"><svg class="ic"><use href="#g-external"/></svg> View on AtomicHub</button>
+      <button class="btn ghost sm" id="lsExplorer"><svg class="ic"><use href="#g-external"/></svg> View on explorer</button>
+    </div>
   `);
   // keep this sheet open so an engine error (stale sale, etc.) shows inline; on success
   // openSignSheet replaces the sheet content with the amber Sign step.
   if (!mine && $("lsBuy")) $("lsBuy").onclick = () => buyListing(sale.sale_id, $("lsBuyMsg"));
   if (mine && $("lsCancel")) $("lsCancel").onclick = () => cancelListing(sale.sale_id, $("lsBuyMsg"));
+  if ($("lsAtomicHub")) $("lsAtomicHub").onclick = () => { const u = atomicHubUrl(sale); if (u) openExt(u); };
   $("lsExplorer").onclick = () => {
     const expBase = (STATE.chain.explorerTx || "").replace(/transaction\/$/, "");
     const expFallback = (STATE.chain.explorerTxFallback || "").replace(/transaction\/$/, "");

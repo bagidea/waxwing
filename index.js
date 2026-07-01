@@ -632,9 +632,12 @@ async function tokenBalance(chain, name, symbol, contract) {
 // Tx history via Hyperion v2 (best-effort: not every node runs history).
 // Now resilient: multiple endpoints with health-checked failover, per-request
 // timeout, last-good cache for graceful degradation when all endpoints are down.
-async function history(chain, name, limit, _retried) {
+async function history(chain, name, limit, skip, _retried) {
   if (!name) throw new Error("account name required");
   const n = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+  // Hyperion v2 get_actions pagination: offset into the action stream. We only
+  // cache page 0 (so infinite-scroll appends don't taint the last-good cache).
+  const off = Math.max(parseInt(skip, 10) || 0, 0);
   const cacheKey = `${chain.id}:${name}`;
 
   // Resolve a healthy history endpoint — failover across all candidates.
@@ -646,17 +649,17 @@ async function history(chain, name, limit, _retried) {
     const cached = _lastHistoryCache.get(cacheKey);
     if (cached && (Date.now() - cached.ts) < LAST_HISTORY_CACHE_TTL_MS) {
       return { account: name, count: cached.data.actions.length, actions: cached.data.actions,
-        explorerTx: chain.explorerTx, fromCache: true, degraded: false,
+        explorerTx: chain.explorerTx, fromCache: true, degraded: false, hasMore: false,
         note: "Showing last known history — live API is temporarily unavailable" };
     }
     // No cache available either — graceful degradation
     return { account: name, count: 0, actions: [], explorerTx: chain.explorerTx,
-      degraded: true,
+      degraded: true, hasMore: false,
       msg: "History ไม่พร้อมชั่วคราว — API ประวัติของเครือข่ายล่มชั่วคราว ลองใหม่อีกครั้ง",
       detail: `all ${_historyCandidates(chain).length} history endpoint(s) unreachable` };
   }
 
-  const url = `${historyUrl}/v2/history/get_actions?account=${encodeURIComponent(name)}&limit=${n}&simple=true&sort=desc`;
+  const url = `${historyUrl}/v2/history/get_actions?account=${encodeURIComponent(name)}&limit=${n}&skip=${off}&simple=true&sort=desc`;
 
   // Fetch with per-request timeout — an endpoint can pass the health check
   // but hang on the actual data query.
@@ -668,31 +671,31 @@ async function history(chain, name, limit, _retried) {
     clearTimeout(tm);
   }
   catch (e) {
-    if (!_retried) { _invalidateHistory(chain.id); return history(chain, name, limit, true); }
+    if (!_retried) { _invalidateHistory(chain.id); return history(chain, name, limit, off, true); }
     // Retry exhausted — degrade gracefully with last-good cache
     const cached = _lastHistoryCache.get(cacheKey);
     if (cached && (Date.now() - cached.ts) < LAST_HISTORY_CACHE_TTL_MS) {
       return { account: name, count: cached.data.actions.length, actions: cached.data.actions,
-        explorerTx: chain.explorerTx, fromCache: true, degraded: false,
+        explorerTx: chain.explorerTx, fromCache: true, degraded: false, hasMore: false,
         note: "Showing last known history — live API is temporarily unavailable" };
     }
     return { account: name, count: 0, actions: [], explorerTx: chain.explorerTx,
-      degraded: true,
+      degraded: true, hasMore: false,
       msg: "History ไม่พร้อมชั่วคราว — API ประวัติของเครือข่ายล่มชั่วคราว ลองใหม่อีกครั้ง",
       detail: `fetch failed: ${e?.cause?.code || e.message || "timeout"}` };
   }
 
   if (!res.ok) {
     // Non-200 — invalidate and retry once, then degrade
-    if (!_retried) { _invalidateHistory(chain.id); return history(chain, name, limit, true); }
+    if (!_retried) { _invalidateHistory(chain.id); return history(chain, name, limit, off, true); }
     const cached = _lastHistoryCache.get(cacheKey);
     if (cached && (Date.now() - cached.ts) < LAST_HISTORY_CACHE_TTL_MS) {
       return { account: name, count: cached.data.actions.length, actions: cached.data.actions,
-        explorerTx: chain.explorerTx, fromCache: true, degraded: false,
+        explorerTx: chain.explorerTx, fromCache: true, degraded: false, hasMore: false,
         note: "Showing last known history — live API returned an error" };
     }
     return { account: name, count: 0, actions: [], explorerTx: chain.explorerTx,
-      degraded: true,
+      degraded: true, hasMore: false,
       msg: "History ไม่พร้อมชั่วคราว — API ประวัติของเครือข่ายล่มชั่วคราว ลองใหม่อีกครั้ง",
       detail: `HTTP ${res.status} from ${historyUrl}` };
   }
@@ -712,10 +715,22 @@ async function history(chain, name, limit, _retried) {
     };
   });
 
-  // Cache this successful result
-  _lastHistoryCache.set(cacheKey, { data: { actions: items }, ts: Date.now() });
+  // hasMore: Hyperion returns total.value (often relation "gte" = capped lower bound,
+  // but still a usable estimate). Prefer it when present; otherwise fall back to the
+  // limit-saturation heuristic (a full page ⇒ there is probably another page).
+  let hasMore = items.length >= n;
+  if (json.total && Number.isFinite(json.total.value)) {
+    hasMore = (off + items.length) < json.total.value;
+  }
 
-  return { account: name, count: items.length, actions: items, explorerTx: chain.explorerTx };
+  // Cache only page 0 — the degraded last-good cache should never carry an offset,
+  // or a "More" miss would surface stale page-N data as if it were the whole feed.
+  if (off === 0) {
+    _lastHistoryCache.set(cacheKey, { data: { actions: items }, ts: Date.now() });
+  }
+
+  return { account: name, count: items.length, actions: items, explorerTx: chain.explorerTx,
+    skip: off, limit: n, hasMore };
 }
 
 // ── Hyperion v2 state API (auto-resolve + full token portfolio) ────────
@@ -2943,7 +2958,7 @@ module.exports = (ctx) => {
         case "chaininfo":  return reply({ ok: true, info: await chainInfo(resolveNet(a.network)) });
         case "account":    return reply({ ok: true, account: await accountInfo(resolveNet(a.network), a.name || parts[0]) });
         case "balance":    return reply({ ok: true, balance: await tokenBalance(resolveNet(a.network), a.name || parts[0], a.symbol || parts[1], a.contract || parts[2]) });
-        case "history":    return reply({ ok: true, history: await history(resolveNet(a.network), a.name || parts[0], a.limit || parts[1]) });
+        case "history":    return reply({ ok: true, history: await history(resolveNet(a.network), a.name || parts[0], a.limit || parts[1], a.skip ?? parts[2]) }); // `??` not `||`: skip=0 is a valid value (first page), only fall back to positional arg when absent
 
         // ── Resources: full resource picture + rates ──────────────────
         case "resources": {
